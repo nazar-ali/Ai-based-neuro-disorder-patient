@@ -1,1 +1,25 @@
 @import "tailwindcss";
+
+
+:root {
+  --text-primary: #ffffff;
+  --text-secondary: #a1a1aa; /* Example: gray-400 */
+  --bg-primary: #0f172a;     /* Example: slate-900 */
+    --bg-secondary: #1e293b;   /* Example: slate-800 */
+    --border-color: #334155;   /* Example: slate-700 */
+    --input-bg: #1e293b;       /* Example: slate-800 */
+    --input-border: #475569;   /* Example: slate-600 */
+    --input-focus-border: #3b82f6; /* Example: blue-500 */
+    --placeholder-color: #94a3b8; /* Example: slate-400 */
+    --primary-color: #3b82f6;  /* Example: blue-500 */
+    --primary-hover: #2563eb;  /* Example: blue-600 */
+    --error-color: #ef4444;    /* Example: red-500 */
+    --error-hover: #dc2626;    /* Example: red-600 */
+    --success-color: #22c55e;  /* Example: green-500 */
+    --success-hover: #16a34a;  /* Example: green-600 */
+    --warning-color: #f59e0b;  /* Example: amber-500 */
+    --warning-hover: #d97706;  /* Example: amber-600 */
+    --info-color: #0ea5e9;     /* Example: sky-500 */
+    --info-hover: #0284c7;     /* Example: sky-600 */
+}
+    

@@ -1,6 +1,8 @@
+'use client'
 import { Button } from "@/components/ui/button"
-
+import { useRouter } from "next/navigation"
 export default function Header() {
+  const router = useRouter()
   return (
     <header className="flex items-center justify-between whitespace-nowrap border-b border-gray-200 px-4 py-3 md:px-10">
       <div className="flex items-center gap-4 text-gray-900">
@@ -29,7 +31,7 @@ export default function Header() {
         </nav>
 
         <div className="flex gap-2">
-          <Button className="bg-blue-500 hover:bg-blue-600 text-white font-bold">Sign Up</Button>
+          <Button onClick={() => router.push('/signup')} className="bg-blue-500 hover:bg-blue-600 text-white font-bold">Sign Up</Button>
           <Button variant="outline" className="font-bold bg-transparent">
             Log In
           </Button>
