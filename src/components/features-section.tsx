@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import Image from "next/image";
-import { assets } from "@/lib/assets/assets";
+import { assets } from "@/utils/assets/assets";
 const features = [
   {
     title: "AI Chatbot",

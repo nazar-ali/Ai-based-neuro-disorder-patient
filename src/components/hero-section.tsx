@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
-import {assets} from "@/lib/assets/assets";
+import {assets} from "@/utils/assets/assets";
 export default function HeroSection() {
   return (
     <section className="px-4 md:px-8 lg:px-16 py-8">
