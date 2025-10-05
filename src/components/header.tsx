@@ -32,7 +32,7 @@ export default function Header() {
 
         <div className="flex gap-2">
           <Button onClick={() => router.push('/signup')} className="bg-blue-500 hover:bg-blue-600 text-white font-bold">Sign Up</Button>
-          <Button variant="outline" className="font-bold bg-transparent">
+          <Button variant="outline" onClick={() => router.push('/login')} className="font-bold bg-transparent">
             Log In
           </Button>
         </div>

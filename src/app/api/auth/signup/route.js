@@ -4,14 +4,19 @@ import bcrypt from 'bcryptjs';
 import { passwordRegex } from '@/constants';
 import { NextResponse } from 'next/server';
 import { loginUser } from '@/lib/auth/loginUser';
-
 export async function POST(req) {
   try {
-    const body = await req.json();
 
-    const {fullName, email, password, profileImageUrl } = body;
+    const formData = await req.formData();
 
-    if (!fullName  || !email || !password || !profileImageUrl) {
+    const fullName = formData.get('fullName');
+    const email = formData.get('email');
+    const password = formData.get('password');
+    const profileImageUrl = formData.get('profileImageUrl');
+
+
+
+    if (!fullName || !email || !password || !profileImageUrl) {
       return NextResponse.json(
         { success: false, data: null, error: 'All fields are required' },
         { status: 400 }
@@ -49,7 +54,12 @@ export async function POST(req) {
       profileImageUrl,
     });
 
-    const { accessToken } = await loginUser(email, password);
+
+    let accessToken = null;
+    if (typeof loginUser === 'function') {
+      const loginResponse = await loginUser(email, password);
+      accessToken = loginResponse?.accessToken;
+    }
 
     return NextResponse.json(
       {
@@ -59,17 +69,17 @@ export async function POST(req) {
           accessToken,
           user: {
             id: user._id,
-           fullName: user.fullName,
+            fullName: user.fullName,
             email: user.email,
             profileImageUrl: user.profileImageUrl,
           },
         },
-        error: '',
+
       },
       { status: 201 }
     );
   } catch (error) {
-    console.error('Signup error:', error);
+
     return NextResponse.json(
       {
         success: false,

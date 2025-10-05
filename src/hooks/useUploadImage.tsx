@@ -16,36 +16,41 @@ export const useUploadImage = ({ watchedFile }:UseUploadImageProps) => {
     apiFunction: uploadProfileImage,
   });
 
-  const onUploadImage = async () => {
-    if (!watchedFile) {
-      toast.error('Profile picture is required.');
+const onUploadImage = async () => {
+  if (!watchedFile) {
+    toast.error('Profile picture is required.');
+    return null;
+  }
+
+  if (watchedFile?.size > MAX_FILE_SIZE) {
+    toast.error('File size must be under 5MB.');
+    return null;
+  }
+
+  const formData = new FormData();
+  console.log(formData)
+  formData.append('file', watchedFile);
+
+  try {
+    const res = await uploadImage(formData);
+    console.log("📷 Upload response:", res);
+
+    // Adjust according to your backend response
+    const url = res?.url || res?.data?.url;
+
+    if (!url) {
+      toast.error('Failed to upload image');
       return null;
     }
 
-    if (watchedFile?.size > MAX_FILE_SIZE) {
-      toast.error('File size must be under 5MB.');
-      return null;
-    }
+    return url;
+  } catch (err: any) {
+    console.error("Upload image error:", err);
+    toast.error(err?.errorMessage || "Image upload error");
+    return null;
+  }
+};
 
-    const formData = new FormData();
-    formData.append('file', watchedFile);
-
-    try {
-      const { url } = await uploadImage(formData);
-
-      if (!url) {
-        toast.error('Failed to upload image');
-        return null;
-      }
-
-      return url;
-    } catch (err: any) {
-  console.error("Upload image error:", err);
-  toast.error(err?.errorMessage || "Image upload error");
-  return null;
-}
-
-  };
 
   return { onUploadImage, uploadingFile, fileUploadError };
 };

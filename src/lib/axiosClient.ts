@@ -91,31 +91,33 @@ const api = {
 // ✅ Type-safe error handler
 function handleError(error: unknown): never {
   if (axios.isAxiosError(error)) {
-    const statusCode = error.response?.status;
-    const errorData = error.response?.data;
+    const statusCode = error.response?.status ?? "No Status";
+    const errorData = error.response?.data ?? {};
+    const requestUrl = error.config?.url ?? "Unknown URL";
+    const method = error.config?.method ?? "unknown";
 
-    console.error("API Error:", {
-      status: statusCode,
-      data: errorData,
-      url: error.config?.url,
-      method: error.config?.method,
-    });
+    console.group("❌ API Error");
+    console.error("➡️ URL:", requestUrl);
+    console.error("➡️ Method:", method.toUpperCase());
+    console.error("➡️ Status:", statusCode);
+    console.error("➡️ Response:", errorData);
+    console.groupEnd();
 
-    throw {
-      errorCode: statusCode,
-      errorMessage:
-        (errorData as any)?.error ||
+    throw new Error(
+      (errorData as any)?.error ||
         (errorData as any)?.message ||
-        JSON.stringify(errorData) || // 👈 log raw data if not standard
-        "API Error",
-    };
-  } else if (error instanceof Error) {
+        `API Error (${statusCode}) at ${requestUrl}`
+    );
+  }
+
+  if (error instanceof Error) {
     console.error("Unexpected Error:", error.message);
     throw new Error(error.message);
   }
 
-  throw new Error("Unknown error occurred.");
+  throw new Error("Unknown error occurred");
 }
+
 
 
 export default api;

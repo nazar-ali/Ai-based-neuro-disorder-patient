@@ -3,5 +3,5 @@ export type RegisterUserPayload = {
   fullName: string;
   email: string;
   password: string;
-  profileImageUrl?: string;
+  profileImageUrl: string;
 }

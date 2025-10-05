@@ -1,29 +1,39 @@
-import { put } from "@vercel/blob";
+import { handleUpload } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
 
 export async function POST(request) {
   try {
-    const formData = await request.formData();
-    const file = formData.get("file");
-    const fileName =
-      formData.get("fileName") || (file && file.name ? file.name : "upload");
+    const body = await request.json();
 
-    console.log("📂 Upload API called", { fileName });
+    const jsonResponse = await handleUpload({
+      body,
+      request,
+      onBeforeGenerateToken: async () => {
+        return {
+          allowedContentTypes: ["image/jpeg", "image/png", "image/gif"],
+          allowOverwrite: true,
+          tokenPayload: JSON.stringify({
+            userId: "h348n23jjj23", // replace with logged-in user
+            projectId: 23,
+          }),
+        };
+      },
+      onUploadCompleted: async ({ blob, tokenPayload }) => {
+        console.log("📂 Upload completed:", blob);
 
-    if (!file) {
-      return NextResponse.json(
-        { error: "No file uploaded" },
-        { status: 400 }
-      );
-    }
-
-    const blob = await put(fileName, file, {
-      access: "public",
-      token: process.env.BLOB_READ_WRITE_TOKEN,
-      allowOverwrite: true,
+        try {
+          const { userId, projectId } = JSON.parse(tokenPayload);
+          console.log(
+            `✅ File uploaded for user: ${userId}, projectId: ${projectId}`
+          );
+        } catch (error) {
+          console.error("❌ Error parsing tokenPayload:", error);
+          throw new Error("Could not process upload completion");
+        }
+      },
     });
 
-    return NextResponse.json({ url: blob.url });
+    return NextResponse.json(jsonResponse);
   } catch (err) {
     console.error("❌ Upload failed:", err);
     return NextResponse.json(

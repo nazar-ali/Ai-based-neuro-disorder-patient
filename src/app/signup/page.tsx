@@ -1,10 +1,9 @@
 "use client";
 
-import { Controller, useForm } from "react-hook-form"; // ✅ only useForm here
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -26,113 +25,96 @@ import { toast } from "sonner";
 import ImageUploadInput from "@/components/ImageUploadInput";
 import { registerUserAPI } from "@/lib/api";
 import { useNetworkRequest } from "@/hooks/useNetworkRequest";
-import { useUploadImage } from "@/hooks/useUploadImage";
 import { useLoggedInUser } from "@/hooks/userLoggedIn";
 import { saveAccessToken } from "@/lib/helpers";
 import { APP_ROUTES } from "@/constants/app-routes";
-import { useRouter } from 'next/navigation';
-import { RegisterUserPayload } from "@/types/user";
+import { useRouter } from "next/navigation";
 import Loader from "@/components/common/Loader";
-import { MAX_FILE_SIZE } from "@/constants";
-
-type SignUpFormDataType = {
-  fullName: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-  terms: boolean;
-  profileImageUrl: FileList; 
-};
-
+import { upload } from "@vercel/blob/client"; // ✅ upload here
 
 export default function SignUpPage() {
-  // debugger
-    const router = useRouter();
+  const router = useRouter();
   const { setLoggedInUser } = useLoggedInUser();
- const {
+  const {
     loading,
-    errorMessage,
     executeFunction: registerUser,
   } = useNetworkRequest({
     apiFunction: registerUserAPI,
   });
 
-
   const form = useForm<SignUpFormData>({
-  resolver: zodResolver(signUpSchema),
-  defaultValues: {
-    fullName: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-    terms: false,
-    profileImageUrl: undefined, // add if schema expects it
-  },
-});
-
- 
-  const password = form.watch('password');
-
- const watchedFile = form.watch("profileImageUrl")?.[0] ?? null;
-
-  const removeSelectedFile = () => {
-    form.resetField('profileImageUrl');
-  };
-
-  const { onUploadImage, uploadingFile, fileUploadError } = useUploadImage({
-    watchedFile,
+    resolver: zodResolver(signUpSchema),
+    defaultValues: {
+      fullName: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      terms: false,
+      profileImageUrl: undefined,
+    },
   });
 
+  const watchedFile = form.watch("profileImageUrl")?.[0] ?? null;
 
-const onSubmit = async (data: SignUpFormData) => {
-  const { fullName, email, password } = data;
-  
-    try {
-      const profileImageUrl = await onUploadImage();
-      if (profileImageUrl) {
-        const userPayload: RegisterUserPayload = {
-          fullName,
-          email,
-          password,
-          profileImageUrl,
-        };
-        const response = await registerUser(userPayload);
-        setLoggedInUser(response?.user);
-        saveAccessToken(response?.accessToken);
+  const removeSelectedFile = () => {
+    form.resetField("profileImageUrl");
+  };
 
-        form.reset();
-
-        router.replace(APP_ROUTES.DASHBOARD);
-      }
-    } catch (error: unknown) {
-    if (error instanceof Error) {
-      toast.error(error.message);
-    } else {
-      toast.error("Something went wrong. Please try again.");
+ const onSubmit = async (data: SignUpFormData) => {
+  try {
+    if (!watchedFile) {
+      toast.error("Please upload a profile picture");
+      return;
     }
+
+    // Upload image first
+    const blob = await upload(`users/${data.email}/${watchedFile.name}`, watchedFile, {
+      access: "public",
+      handleUploadUrl: "/api/upload-file",
+    });
+    const uploadedUrl = blob.url;
+
+    // Create FormData
+    const formData = new FormData();
+    formData.append("fullName", data.fullName);
+    formData.append("email", data.email);
+    formData.append("password", data.password);
+    formData.append("profileImageUrl", uploadedUrl);
+
+    // ✅ useNetworkRequest already returns parsed data
+    const result = await registerUser(formData);
+
+    if (!result?.success && !result?.data) {
+      throw new Error(result?.message || "Signup failed");
+    }
+
+    setLoggedInUser(result.data.user);
+    saveAccessToken(result.accessToken);
+if(result?.success && result.data){
+  toast.success("Signup successful 🎉 Redirecting...");
+}
+
+    // ✅ Reset form + clear file like your sample
+    form.reset();
+    removeSelectedFile();
+
+    // ✅ Navigate after short delay for smooth UX
+    setTimeout(() => {
+      router.replace(APP_ROUTES.LOGIN);
+    }, 1000);
+  } catch (error: unknown) {
+    toast.error(error instanceof Error ? error.message : "Something went wrong. Please try again.");
   }
 };
 
 
-
   return (
     <div className="relative flex min-h-screen flex-col bg-[#f8faff]">
-      <header className="sticky top-0 z-10 w-full bg-white/80 backdrop-blur-md border-b border-gray-200">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Button
-            variant="outline"
-            className="border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white transition-colors"
-          >
-            Sign Up
-          </Button>
-        </div>
-      </header>
-
       <main className="flex flex-1 items-center justify-center p-6">
         <Card className="w-full max-w-md rounded-xl border border-gray-200 bg-white/90 p-6 shadow-lg backdrop-blur-md transition hover:shadow-xl">
           <CardHeader>
             <CardTitle className="text-center text-2xl font-bold text-gray-900">
-              Welcome NeuroCare Assistent  
+              Welcome NeuroCare Assistant
             </CardTitle>
             <p className="mt-1 text-center text-sm text-gray-500">
               Sign in to continue to your account
@@ -141,65 +123,58 @@ const onSubmit = async (data: SignUpFormData) => {
 
           <CardContent>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)}
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
                 className="space-y-4"
               >
                 {/* Full Name */}
-              <FormField
-  control={form.control}
-  name="fullName"
-  render={({ field }) => (
-    <FormItem>
-      <FormLabel>Full Name</FormLabel>
-      <FormControl>
-        <Input
-          placeholder="Enter your full name"
-          value={field.value} // controlled by RHF
-          onChange={(e) => field.onChange(e.target.value)} // ✅ manual e.target.value
-        />
-      </FormControl>
-      <FormMessage className="text-red-500" />
-    </FormItem>
-  )}
-/>
+                <FormField
+                  control={form.control}
+                  name="fullName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Full Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter your full name" {...field} />
+                      </FormControl>
+                      <FormMessage className="text-red-500" />
+                    </FormItem>
+                  )}
+                />
 
-<FormField
-  control={form.control}
-  name="email"
-  render={({ field }) => (
-    <FormItem>
-      <FormLabel>Email</FormLabel>
-      <FormControl>
-        <Input
-          placeholder="you@example.com"
-          value={field.value}
-          onChange={(e) => field.onChange(e.target.value)} // ✅ use e.target.value
-        />
-      </FormControl>
-      <FormMessage className="text-red-500" />
-    </FormItem>
-  )}
-/>
+                {/* Email */}
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="you@example.com"
+                          type="email"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className="text-red-500"/>
+                    </FormItem>
+                  )}
+                />
 
-<FormField
-  control={form.control}
-  name="password"
-  render={({ field }) => (
-    <FormItem>
-      <FormLabel>Password</FormLabel>
-      <FormControl>
-        <Input
-          type="password"
-          placeholder="••••••••"
-          value={field.value}
-          onChange={(e) => field.onChange(e.target.value)} // ✅ use e.target.value
-        />
-      </FormControl>
-      <FormMessage className="text-red-500" />
-    </FormItem>
-  )}
-/>
-
+                {/* Password */}
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder="••••••••" {...field} />
+                      </FormControl>
+                      <FormMessage className="text-red-500" />
+                    </FormItem>
+                  )}
+                />
 
                 {/* Confirm Password */}
                 <FormField
@@ -211,27 +186,26 @@ const onSubmit = async (data: SignUpFormData) => {
                       <FormControl>
                         <Input type="password" placeholder="••••••••" {...field} />
                       </FormControl>
-                      <FormMessage className="text-red-500"/>
+                      <FormMessage className="text-red-500" />
                     </FormItem>
                   )}
                 />
 
-              <Controller
-  name="profileImageUrl"
-  control={form.control}
-  rules={{ required: "Profile picture is required" }}
-  render={({ field }) => (
-    <ImageUploadInput
-      label="Profile Picture"
-      classes="mt-3"
-      watchedFile={watchedFile}
-      removeSelectedFile={removeSelectedFile}
-      // register removed, field already gives value + onChange
-      onChange={(e) => field.onChange(e.target.files)}
-    />
-  )}
-/>
-
+                {/* Profile Image */}
+                <Controller
+                  name="profileImageUrl"
+                  control={form.control}
+                  rules={{ required: "Profile picture is required" }}
+                  render={({ field }) => (
+                    <ImageUploadInput
+                      label="Profile Picture"
+                      classes="mt-3"
+          
+                      removeSelectedFile={removeSelectedFile}
+                      onChange={(e) => field.onChange(e.target.files)}
+                    />
+                  )}
+                />
 
                 {/* Terms */}
                 <FormField
@@ -257,25 +231,33 @@ const onSubmit = async (data: SignUpFormData) => {
                           </Link>
                         </FormLabel>
                       </div>
-                      <FormMessage className="text-red-500"/>
+                      <FormMessage  className="text-red-500"/>
                     </FormItem>
                   )}
                 />
-  {loading || uploadingFile ? (
-          <div className='mt-8'>
-            <Loader variant='secondary' />
-          </div>
-        ) : (
-                <Button type="submit"  className="w-full bg-[var(--primary-color)] hover:bg-blue-600 transition-colors">
-                  Sign Up
-                </Button>
-        )}
+
+                {/* Submit */}
+                {loading ? (
+                  <div className="mt-6">
+                    <Loader variant="secondary" />
+                  </div>
+                ) : (
+                  <Button
+                    type="submit"
+                    className="w-full bg-[var(--primary-color)] hover:bg-blue-600 transition-colors"
+                  >
+                    Sign Up
+                  </Button>
+                )}
               </form>
             </Form>
 
-            <p className="text-center text-sm text-gray-600">
+            <p className="text-center text-sm text-gray-600 mt-4">
               Already have an account?{" "}
-              <Link href="/login" className="font-medium underline text-[var(--primary-color)] hover:text-blue-500 transition-colors">
+              <Link
+                href="/login"
+                className="font-medium underline text-[var(--primary-color)] hover:text-blue-500 transition-colors"
+              >
                 Log in
               </Link>
             </p>
@@ -285,5 +267,3 @@ const onSubmit = async (data: SignUpFormData) => {
     </div>
   );
 }
-
-
