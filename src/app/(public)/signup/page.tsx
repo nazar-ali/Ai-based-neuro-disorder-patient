@@ -100,7 +100,7 @@ if(result?.success && result.data){
 
     // ✅ Navigate after short delay for smooth UX
     setTimeout(() => {
-      router.replace(APP_ROUTES.LOGIN);
+      router.replace(APP_ROUTES.DASHBOARD);
     }, 1000);
   } catch (error: unknown) {
     toast.error(error instanceof Error ? error.message : "Something went wrong. Please try again.");

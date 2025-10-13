@@ -1,9 +1,10 @@
 'use client'
 
-import { DashboardLayout } from "@/components/layouts/DashboardLayout";
+// import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import  {DataTable}  from "@/components/DataTable";
 import { activityColumns, alertColumns } from "@/components/dashboard/columns";
 import { useState } from "react";
+import ProtectedRoute from "../layout";
 
 export default function DashboardPage() {
     const [rowsPerPage, setRowsPerPage] = useState("10");
@@ -44,16 +45,15 @@ export default function DashboardPage() {
   ];
 
   return (
-    <DashboardLayout>
+     <div className="p-4">
       <div className="mb-8">
-        <h1 className="text-4xl font-extrabold  mb-2">
+        <h1 className="text-2xl font-extrabold  mb-2">
           Dashboard Overview
         </h1>
-        <p className="text-lg text-[var(--text-secondary)]">
+        <p className="text-sm text-[var(--text-secondary)]">
           Monitor patient activities and recent alerts.
         </p>
       </div>
-
       <div className="grid grid-cols-1 gap-8">
         <DataTable
           title="Recent Alerts"
@@ -63,14 +63,14 @@ export default function DashboardPage() {
             onRowsPerPageChange={ () => setRowsPerPage}
         />
 
-        <DataTable
+        {/* <DataTable
           title="Patient Activities"
           columns={activityColumns}
           data={activities}
             rowsPerPage={rowsPerPage}
             onRowsPerPageChange={() => setRowsPerPage}
-        />
+        /> */}
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

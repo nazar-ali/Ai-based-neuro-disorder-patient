@@ -29,10 +29,11 @@ import { LoginForm, loginSchema } from "@/components/schemas/loginSchema";
 import { loginUserAPI } from "@/lib/api";
 import { saveAccessToken } from "@/lib/helpers";
 import { APP_ROUTES } from "@/constants/app-routes";
+import { useLoggedInUser } from "@/hooks/userLoggedIn";
 
 export default function LoginPage() {
   const router = useRouter();
-
+ const { setLoggedInUser } = useLoggedInUser();
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "" },
@@ -46,6 +47,7 @@ export default function LoginPage() {
       setLoading(true);
 
       const result = await loginUserAPI(data);
+       setLoggedInUser(result?.data?.user);
       console.log("Login API Result:", result);
 
       if (!result?.success || !result?.data) {

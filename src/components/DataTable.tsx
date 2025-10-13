@@ -49,9 +49,9 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="w-full space-y-4">
-      {title && <h2 className="text-xl font-bold">{title}</h2>}
+      {title && <h2 className="text-md font-bold">{title}</h2>}
 
-      <div className="rounded-md border sm:max-h-[500px] overflow-auto bg-white mx-10">
+      <div className="rounded-md border sm:max-h-[500px] overflow-auto bg-white ">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (

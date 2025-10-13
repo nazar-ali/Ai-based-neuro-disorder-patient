@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { RegisterUserPayload } from '@/types/user';
+import { create } from "zustand";
+import { RegisterUserPayload } from "@/types/user";
 
 interface SignedInUserState {
   loggedInUser: RegisterUserPayload | null;
@@ -10,16 +10,16 @@ interface SignedInUserState {
 export const useSignedInUser = create<SignedInUserState>((set) => ({
   loggedInUser: null,
 
-  setLoggedInUser: (user: RegisterUserPayload) => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('loggedInUser', JSON.stringify(user));
+  setLoggedInUser: (user) => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("loggedInUser", JSON.stringify(user));
     }
     set({ loggedInUser: user });
   },
 
   resetLoggedInUser: () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('loggedInUser');
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("loggedInUser");
     }
     set({ loggedInUser: null });
   },

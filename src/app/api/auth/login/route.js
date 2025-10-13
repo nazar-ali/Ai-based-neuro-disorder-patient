@@ -6,6 +6,7 @@ import User from "@/models/User";
 
 export async function POST(req) {
   try {
+     await dbConnect(); 
     const { email, password } = await req.json();
 
     // ✅ Validate fields
@@ -17,7 +18,7 @@ export async function POST(req) {
     }
 
     // ✅ Connect to database
-    await dbConnect();
+    // await dbConnect();
 
     // ✅ Find user by email
     const user = await User.findOne({ email });
