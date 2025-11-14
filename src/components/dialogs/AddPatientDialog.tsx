@@ -18,8 +18,7 @@ interface AddPatientDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-export default function AddPatientDialog() {
-  const [open, setOpen] = useState(false)
+export default function AddPatientDialog({open, onOpenChange}: AddPatientDialogProps) {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState("")
 
@@ -55,7 +54,7 @@ export default function AddPatientDialog() {
       const data = await res.json()
       if (res.ok) {
         setMessage("✅ Patient added successfully!")
-        setTimeout(() => setOpen(false), 1500)
+        setTimeout(() => onOpenChange(false), 1500)
         setForm({
           medicalRecordsId: "",
           fullName: "",
@@ -80,18 +79,7 @@ export default function AddPatientDialog() {
   }
 
   return (
-
-    
-    <Dialog open={open} onOpenChange={setOpen}>
-      {/* Trigger Button */}
-      
-       <DialogTrigger asChild>
-      <Button  onClick={() => setOpen(true)} className="bg-teal-600 hover:bg-teal-700 text-white font-medium shadow-sm transition-all">
-          <PlusCircle className="h-4 w-4 mr-2" /> Add Patient
-        </Button>
-        </DialogTrigger>
-
-      {/* Dialog Content */}
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="fixed sm:max-w-[700px] p-6 rounded-2xl shadow-lg border border-gray-200 bg-white">
          <div className="p-2 overflow-auto max-h-[80vh]">
         <DialogHeader>

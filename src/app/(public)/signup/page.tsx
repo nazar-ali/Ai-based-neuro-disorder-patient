@@ -30,7 +30,7 @@ import { saveAccessToken } from "@/lib/helpers";
 import { APP_ROUTES } from "@/constants/app-routes";
 import { useRouter } from "next/navigation";
 import Loader from "@/components/common/Loader";
-import { upload } from "@vercel/blob/client"; // ✅ upload here
+import { upload } from "@vercel/blob/client"; 
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -49,6 +49,7 @@ export default function SignUpPage() {
       email: "",
       password: "",
       confirmPassword: "",
+      role: undefined,
       terms: false,
       profileImageUrl: undefined,
     },
@@ -60,52 +61,51 @@ export default function SignUpPage() {
     form.resetField("profileImageUrl");
   };
 
- const onSubmit = async (data: SignUpFormData) => {
-  try {
-    if (!watchedFile) {
-      toast.error("Please upload a profile picture");
-      return;
+  const onSubmit = async (data: SignUpFormData) => {
+    try {
+      if (!watchedFile) {
+        toast.error("Please upload a profile picture");
+        return;
+      }
+
+      
+      const blob = await upload(`users/${data.email}/${watchedFile.name}`, watchedFile, {
+        access: "public",
+        handleUploadUrl: "/api/upload-file",
+      });
+      const uploadedUrl = blob.url;
+
+      
+      const formData = new FormData();
+      formData.append("fullName", data.fullName);
+      formData.append("email", data.email);
+      formData.append("role", data.role);
+      formData.append("password", data.password);
+      formData.append("profileImageUrl", uploadedUrl);
+
+      
+      const result = await registerUser(formData);
+
+      if (!result?.success && !result?.data) {
+        throw new Error(result?.message || "Signup failed");
+      }
+
+      setLoggedInUser(result.data.user);
+      saveAccessToken(result.accessToken);
+      if (result?.success && result.data) {
+        toast.success("Signup successful 🎉 Redirecting...");
+      }
+
+      form.reset();
+      removeSelectedFile();
+
+      setTimeout(() => {
+        router.replace(APP_ROUTES.DASHBOARD);
+      }, 1000);
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Something went wrong. Please try again.");
     }
-
-    // Upload image first
-    const blob = await upload(`users/${data.email}/${watchedFile.name}`, watchedFile, {
-      access: "public",
-      handleUploadUrl: "/api/upload-file",
-    });
-    const uploadedUrl = blob.url;
-
-    // Create FormData
-    const formData = new FormData();
-    formData.append("fullName", data.fullName);
-    formData.append("email", data.email);
-    formData.append("password", data.password);
-    formData.append("profileImageUrl", uploadedUrl);
-
-    // ✅ useNetworkRequest already returns parsed data
-    const result = await registerUser(formData);
-
-    if (!result?.success && !result?.data) {
-      throw new Error(result?.message || "Signup failed");
-    }
-
-    setLoggedInUser(result.data.user);
-    saveAccessToken(result.accessToken);
-if(result?.success && result.data){
-  toast.success("Signup successful 🎉 Redirecting...");
-}
-
-    // ✅ Reset form + clear file like your sample
-    form.reset();
-    removeSelectedFile();
-
-    // ✅ Navigate after short delay for smooth UX
-    setTimeout(() => {
-      router.replace(APP_ROUTES.DASHBOARD);
-    }, 1000);
-  } catch (error: unknown) {
-    toast.error(error instanceof Error ? error.message : "Something went wrong. Please try again.");
-  }
-};
+  };
 
 
   return (
@@ -113,8 +113,8 @@ if(result?.success && result.data){
       <main className="flex flex-1 items-center justify-center p-6">
         <Card className="w-full max-w-md rounded-xl border border-gray-200 bg-white/90 p-6 shadow-lg backdrop-blur-md transition hover:shadow-xl">
           <CardHeader>
-            <CardTitle className="text-center text-2xl font-bold text-gray-900">
-              Welcome NeuroCare Assistant
+            <CardTitle className="text-center text-3xl font-bold text-gray-900">
+              Welcome to <span className="text-blue-600">NeuroCare</span>
             </CardTitle>
             <p className="mt-1 text-center text-sm text-gray-500">
               Sign in to continue to your account
@@ -127,7 +127,36 @@ if(result?.success && result.data){
                 onSubmit={form.handleSubmit(onSubmit)}
                 className="space-y-4"
               >
-                {/* Full Name */}
+                <FormField
+                  control={form.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="block font-bold">Select your role</FormLabel>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
+                        {["admin", "doctor", "caretaker", "patient"].map((role) => (
+                          <button
+                            key={role}
+                            type="button"
+                            onClick={() => field.onChange(role)}
+                            className={`flex flex-col items-center justify-center gap-2 rounded-lg border p-3 text-sm font-medium transition-all ${field.value === role
+                              ? "border-blue-600 bg-blue-50 text-blue-700"
+                              : "border-gray-200 bg-white hover:border-gray-300"
+                              }`}
+                          >
+                            {role === "admin" && <span className="text-xl ">🧑‍💼</span>}
+                            {role === "doctor" && <span className="text-xl ">🩺</span>}
+                            {role === "caretaker" && <span className="text-xl ">👨‍👩‍👧‍👦</span>}
+                            {role === "patient" && <span className="text-xl ">🙍‍♂️</span>}
+                            <span className="capitalize">{role}</span>
+                          </button>
+                        ))}
+                      </div>
+                      <FormMessage className="text-red-500" />
+                    </FormItem>
+                  )}
+                />
+             
                 <FormField
                   control={form.control}
                   name="fullName"
@@ -142,7 +171,6 @@ if(result?.success && result.data){
                   )}
                 />
 
-                {/* Email */}
                 <FormField
                   control={form.control}
                   name="email"
@@ -156,12 +184,13 @@ if(result?.success && result.data){
                           {...field}
                         />
                       </FormControl>
-                      <FormMessage className="text-red-500"/>
+                      <FormMessage className="text-red-500" />
                     </FormItem>
                   )}
                 />
+              
 
-                {/* Password */}
+              
                 <FormField
                   control={form.control}
                   name="password"
@@ -176,7 +205,7 @@ if(result?.success && result.data){
                   )}
                 />
 
-                {/* Confirm Password */}
+                
                 <FormField
                   control={form.control}
                   name="confirmPassword"
@@ -200,7 +229,7 @@ if(result?.success && result.data){
                     <ImageUploadInput
                       label="Profile Picture"
                       classes="mt-3"
-          
+
                       removeSelectedFile={removeSelectedFile}
                       onChange={(e) => field.onChange(e.target.files)}
                     />
@@ -231,7 +260,7 @@ if(result?.success && result.data){
                           </Link>
                         </FormLabel>
                       </div>
-                      <FormMessage  className="text-red-500"/>
+                      <FormMessage className="text-red-500" />
                     </FormItem>
                   )}
                 />

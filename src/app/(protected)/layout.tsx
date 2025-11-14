@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import AppSidebar from "@/components/Sidebar";
@@ -17,12 +17,13 @@ export default function ProtectedRoute({
   const router = useRouter();
   const [isChecking, setIsChecking] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const pathname=usePathname()
 
   useEffect(() => {
     const token = getAccessToken();
 
     if (!token) {
-      router.replace("/login");
+      router.replace(`/login?redirectURL=${pathname}`);
       return;
     }
 

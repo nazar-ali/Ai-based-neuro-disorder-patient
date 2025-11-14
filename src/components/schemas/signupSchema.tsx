@@ -17,6 +17,9 @@ export const signUpSchema = z
     { message: "Invalid file format." }
   ),
 
+   role: z.enum(["admin","doctor", "caretaker", "patient"])
+    .refine((val) => !!val, { message: "Role is required" }),
+    
     terms: z.boolean().refine((val) => val === true, {
       message: "You must accept the terms.",
     }),
@@ -25,5 +28,7 @@ export const signUpSchema = z
     path: ["confirmPassword"],
     message: "Passwords do not match.",
   });
+  
+  
 
 export type SignUpFormData = z.infer<typeof signUpSchema>;

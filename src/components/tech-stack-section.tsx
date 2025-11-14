@@ -10,7 +10,7 @@ import {
 export default function TechStackSection() {
   return (
     <section className="px-4 md:px-8 lg:px-16 py-16 bg-white">
-      <div className="max-w-6xl mx-auto">
+      <div className="">
         <h2 className="text-gray-900 text-3xl font-bold leading-tight tracking-tight mb-6">
           Technology Stack
         </h2>

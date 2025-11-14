@@ -38,31 +38,29 @@ export default function ChatbotPage() {
       behavior: "smooth",
     })
   }, [messages])
+const handleSendMessage = () => {
+  if (message.trim()) {
+    const newMessage = {
+      id: Date.now(),
+      type: "user" as const,
+      content: message,
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    };
+    setMessages(prev => [...prev, newMessage]);
+    setMessage("");
 
-  const handleSendMessage = () => {
-    if (message.trim()) {
-      const newMessage = {
-        id: messages.length + 1,
-        type: "user" as const,
-        content: message,
+    setTimeout(() => {
+      const botResponse = {
+        id: Date.now() + 1,
+        type: "bot" as const,
+        content: "Thank you for your question. I'm analyzing your symptoms...",
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      }
-      setMessages([...messages, newMessage])
-      setMessage("")
-
-      // Simulate bot response
-      setTimeout(() => {
-        const botResponse = {
-          id: messages.length + 2,
-          type: "bot" as const,
-          content:
-            "Thank you for your question. I'm analyzing your symptoms and will provide guidance shortly. Please remember that this is for informational purposes only and doesn't replace professional medical advice.",
-          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        }
-        setMessages((prev) => [...prev, botResponse])
-      }, 1000)
-    }
+      };
+      setMessages(prev => [...prev, botResponse]);
+    }, 1000);
   }
+};
+
 
   return (
     <div className="flex flex-col bg-gradient-to-br from-white to-blue-50 dark:from-gray-900 dark:to-gray-950 rounded-xl  p-4">
@@ -70,7 +68,7 @@ export default function ChatbotPage() {
         ref={chatContainerRef}
         className="flex-1 overflow-y-auto px-1 space-y-4 py-4 mb-4 max-h-[66vh] scrollbar-thin scrollbar-thumb-blue-400 scrollbar-track-transparent"
       >
-        {messages.map((msg) => (
+        {messages?.map((msg) => (
           <div key={msg.id} className={`flex ${msg.type === "user" ? "justify-end" : "justify-start"}`}>
             <div
               className={`flex items-start space-x-2 max-w-[80%] ${msg.type === "user" ? "flex-row-reverse space-x-reverse" : ""
@@ -109,7 +107,7 @@ export default function ChatbotPage() {
       </div>
 
       {/* Input Area */}
-      <div className="w-full  flex items-center gap-2 bg-white dark:bg-gray-900 rounded-full shadow-md px-3  border border-gray-100 dark:border-gray-800">
+      <div className=" absolute w-[78dvw] bottom-[25px] flex items-center gap-2 bg-white dark:bg-gray-900 rounded-full shadow-md px-3  border border-gray-100 dark:border-gray-800">
         <Input
           placeholder="Type your medical question..."
           value={message}

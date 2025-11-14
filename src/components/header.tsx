@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { SidebarTrigger } from "@/components/ui/sidebar"
+import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useLoggedInUser } from "@/hooks/userLoggedIn"
@@ -17,14 +17,14 @@ import { useLogOutUser } from "@/hooks/useLoggedOutUser"
 export function AppHeader() {
   const { loggedInUser } = useLoggedInUser()
   const { logoutUser } = useLogOutUser()
-
   if (!loggedInUser) return null
+const { open } = useSidebar()
 
   const initial = loggedInUser?.name?.charAt(0)?.toUpperCase?.() || "U"
 
   return (
-    <header className="sticky top-0 z-50 h-16 border-b border-border/40 bg-background/70 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 shadow-sm transition-all duration-300">
-      <div className="mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-5">
+    <header className="sticky top-0 z-50  border-b border-border/40 bg-background/70 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 shadow-sm transition-all duration-300">
+      <div className={`${open ? 'h-18' : 'h-16'} flex   items-center justify-between px-5`}>
         {/* Left: Sidebar Trigger + Welcome */}
         <div className="flex items-center gap-4">
           <SidebarTrigger

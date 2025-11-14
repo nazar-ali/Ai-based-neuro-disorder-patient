@@ -4,7 +4,7 @@ import {assets} from "@/utils/assets/assets";
 export default function HeroSection() {
   return (
     <section className="px-4 md:px-8 lg:px-16 py-8">
-      <div className="max-w-6xl mx-auto">
+      <div className=" ">
         <div
           className="relative min-h-[480px] flex flex-col gap-6 bg-cover bg-center bg-no-repeat rounded-xl items-center justify-center p-8 md:p-12"
           style={{

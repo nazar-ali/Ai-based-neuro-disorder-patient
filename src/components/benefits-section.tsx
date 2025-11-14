@@ -25,7 +25,7 @@ const benefits = [
 export default function BenefitsSection() {
   return (
     <section className="px-4 md:px-8 lg:px-16 py-16 bg-gray-50">
-      <div className="max-w-6xl mx-auto">
+      <div className="">
         <h2 className="text-gray-900 text-2xl font-bold leading-tight tracking-tight mb-8">
           Benefits for Patients and Caregivers
         </h2>
@@ -48,7 +48,7 @@ export default function BenefitsSection() {
                 <Card key={index} className="border border-gray-200 bg-white">
                   <CardContent className="p-6">
                     <div className="flex flex-col gap-4">
-                      <IconComponent className="w-6 h-6 text-gray-900" />
+                      <IconComponent key={index} className="w-6 h-6 text-blue-300" />
                       <div className="flex flex-col gap-2">
                         <h4 className="text-gray-900 text-base font-bold leading-tight">{benefit.title}</h4>
                         <p className="text-gray-600 text-sm font-normal leading-normal">{benefit.description}</p>
