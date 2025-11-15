@@ -20,9 +20,11 @@ console.log("Login attempt:", { email, role,password });
     }
 
     // Find user
+    console.log("find user for the email:", email);
     const user = await User.findOne({ email }).select("+password");
 
-    console.log("No user found with email:", email);
+    console.log("User Details:", user);
+
     if (!user) {
       console.log("No user found with email:", email);
       return NextResponse.json(
@@ -33,7 +35,7 @@ console.log("Login attempt:", { email, role,password });
 
     // Compare raw password with stored hashed password
     const isMatch = await comparePassword(password,  user.password);
-console.log("show password",password,user.password);
+console.log("show both passowrds for comparssions",password,user.password);
     if (!isMatch) {
       console.log("Password mismatch for user:", email);
       return NextResponse.json(
