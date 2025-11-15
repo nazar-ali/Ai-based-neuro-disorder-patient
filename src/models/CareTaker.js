@@ -1,18 +1,18 @@
 import mongoose from "mongoose";
 
-const caretakerSchema = new mongoose.Schema(
-  {
-    assignedPatient: { type: mongoose.Schema.Types.ObjectId, ref: "Patient" },
-    dailySummaries: [
-      {
-        date: { type: Date, default: Date.now },
-        summary: { type: String },
-      },
-    ],
-  },
-  {
-    timestamps: true, // automatically adds createdAt & updatedAt
-  }
-);
+const CaretakerSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 
-export default mongoose.models.Caretaker || mongoose.model("Caretaker", caretakerSchema);
+  assignedPatients: [
+    { type: mongoose.Schema.Types.ObjectId, ref: "Patient" }
+  ],
+
+  notes: [
+    {
+      timestamp: Date,
+      note: String,
+    },
+  ],
+});
+
+export default mongoose.models.Caretaker || mongoose.model("Caretaker", CaretakerSchema);

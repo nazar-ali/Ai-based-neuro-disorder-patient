@@ -127,36 +127,37 @@ export default function SignUpPage() {
                 onSubmit={form.handleSubmit(onSubmit)}
                 className="space-y-4"
               >
-                <FormField
-                  control={form.control}
-                  name="role"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="block font-bold">Select your role</FormLabel>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
-                        {["admin", "doctor", "caretaker", "patient"].map((role) => (
-                          <button
-                            key={role}
-                            type="button"
-                            onClick={() => field.onChange(role)}
-                            className={`flex flex-col items-center justify-center gap-2 rounded-lg border p-3 text-sm font-medium transition-all ${field.value === role
-                              ? "border-blue-600 bg-blue-50 text-blue-700"
-                              : "border-gray-200 bg-white hover:border-gray-300"
-                              }`}
-                          >
-                            {role === "admin" && <span className="text-xl ">🧑‍💼</span>}
-                            {role === "doctor" && <span className="text-xl ">🩺</span>}
-                            {role === "caretaker" && <span className="text-xl ">👨‍👩‍👧‍👦</span>}
-                            {role === "patient" && <span className="text-xl ">🙍‍♂️</span>}
-                            <span className="capitalize">{role}</span>
-                          </button>
-                        ))}
-                      </div>
-                      <FormMessage className="text-red-500" />
-                    </FormItem>
-                  )}
-                />
-             
+               <FormField
+  control={form.control}
+  name="role"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel className="block font-bold">Select your role</FormLabel>
+      <div className="grid grid-cols-2 gap-2 mt-2">
+
+        {/* Only public roles */}
+        {["patient", "caretaker"].map((role) => (
+          <button
+            key={role}
+            type="button"
+            onClick={() => field.onChange(role)}
+            className={`flex flex-col items-center justify-center gap-2 rounded-lg border p-3 text-sm font-medium transition-all ${
+              field.value === role
+                ? "border-blue-600 bg-blue-50 text-blue-700"
+                : "border-gray-200 bg-white hover:border-gray-300"
+            }`}
+          >
+            {role === "caretaker" && <span className="text-xl">👨‍👩‍👧‍👦</span>}
+            {role === "patient" && <span className="text-xl">🙍‍♂️</span>}
+            <span className="capitalize">{role}</span>
+          </button>
+        ))}
+      </div>
+      <FormMessage className="text-red-500" />
+    </FormItem>
+  )}
+/>
+
                 <FormField
                   control={form.control}
                   name="fullName"

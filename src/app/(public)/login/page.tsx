@@ -37,7 +37,7 @@ export default function LoginPage() {
  const { setLoggedInUser } = useLoggedInUser();
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "" },
+    defaultValues: { email: "", password: ""  },
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -96,7 +96,7 @@ export default function LoginPage() {
   name="role"
   render={({ field }) => (
     <FormItem>
-      <FormLabel className="block">Select your role</FormLabel>
+    
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
         {["admin", "doctor", "caretaker", "patient"].map((role) => (
           <button

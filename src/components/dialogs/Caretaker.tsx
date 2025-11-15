@@ -18,6 +18,7 @@ import {
   CaretakerForm,
   DailySummary,
 } from "@/types/careTaker";
+import { createCaretakerAPI } from "@/lib/api";
 
 export default function AddCaretakerDialog({
   open,
@@ -61,16 +62,31 @@ export default function AddCaretakerDialog({
     setMessage("");
 
     try {
-      // Replace with real API
-      console.log("Submitting Caretaker:", form);
+      const payload = {
+        assignedPatient: form.assignedPatient,
+        dailySummaries: form.dailySummaries.filter(s => s.date && s.summary),
+      };
+
+      if (!payload.assignedPatient || payload.dailySummaries.length === 0) {
+        setMessage("❌ Please fill in all required fields");
+        return;
+      }
+
+      await createCaretakerAPI(payload);
+      
       setMessage("✅ Caretaker added successfully!");
       setForm({
         assignedPatient: "",
         dailySummaries: [{ date: "", summary: "" }],
       });
-      setTimeout(() => setMessage(""), 2500);
-    } catch {
-      setMessage("❌ Error adding caretaker.");
+      
+      setTimeout(() => {
+        onOpenChange(false);
+        setMessage("");
+      }, 1500);
+    } catch (error: any) {
+      console.error("Error adding caretaker:", error);
+      setMessage(`❌ Error: ${error.message || "Unknown error"}`);
     } finally {
       setLoading(false);
     }

@@ -1,9 +1,15 @@
 import { SignUpFormData } from '@/components/schemas/signupSchema';
 import api from '@/lib/axiosClient';
 import { RegisterUserPayload } from '@/types/user';
+import { Doctor } from '@/store/useDoctorStore';
+import { PatientPayload } from '@/types/patientFormtypes';
+import { CreateDoctorPayload } from '@/types/doctor';
+
+// ============================================
+// AUTH APIs
+// ============================================
 
 export async function registerUserAPI(formData: FormData) {
-  
   const res = await api.post("/auth/signup", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
@@ -14,19 +20,20 @@ export async function registerUserAPI(formData: FormData) {
 
   return res;
 }
-export async function loginUserAPI(payload: { email: string; password: string }) {
+
+export async function loginUserAPI(payload: {
+  email: string;
+  password: string;
+  role: string;  // ADD ROLE
+}) {
   try {
+    console.log("Login payload:", payload);
     const response = await api.post("/auth/login", payload);
 
-    // Axios returns { data, status, ... }
-    if (response?.data) {
-      return {
-        success: true,
-        data: response.data, // includes { message, user, accessToken }
-      };
-    }
-
-    return { success: false, error: "Unexpected response" };
+    return {
+      success: true,
+      data: response.data,
+    };
   } catch (error: any) {
     return {
       success: false,
@@ -38,6 +45,8 @@ export async function loginUserAPI(payload: { email: string; password: string })
   }
 }
 
+
+
 export const uploadProfileImage = async (formData: FormData) => {
   try {
     const response = await api.post('/upload-file', formData, {
@@ -45,8 +54,106 @@ export const uploadProfileImage = async (formData: FormData) => {
         'Content-Type': 'multipart/form-data',
       },
     });
-    return response.data; 
+    return response.data;
   } catch (error) {
     throw error;
   }
-};
+}
+
+// ============================================
+// USER APIs
+// ============================================
+
+export async function createUserAPI(payload: {
+  fullName: string;
+  email: string;
+  password: string;
+  role: 'doctor' | 'caretaker' | 'patient' | 'admin';
+}) {
+  const response = await api.post('/users', payload);
+  return response;
+}
+
+export async function getUsersAPI(role?: string) {
+  const response = await api.get(`/users${role ? `?role=${role}` : ''}`);
+  return response;
+}
+
+// ============================================
+// DOCTOR APIs
+// ============================================
+
+export async function createDoctorAPI(payload: CreateDoctorPayload) {
+  const response = await api.post('/doctors', payload);
+  return response;
+}
+
+export async function fetchDoctorsAPI() {
+  const response = await api.get('/doctors');
+  return response;
+}
+
+export async function deleteDoctorAPI(doctorId: string) {
+  const response = await api.delete(`/doctors/${doctorId}`);
+  return response;
+}
+
+export async function updateDoctorAPI(doctorId: string, payload: Partial<Doctor>) {
+  const response = await api.put(`/doctors/${doctorId}`, payload);
+  return response;
+}
+
+// ============================================
+// PATIENT APIs
+// ============================================
+
+export async function createPatientAPI(payload: PatientPayload) {
+  const response = await api.post('/patients', payload);
+  return response;
+}
+
+export async function fetchPatientsAPI() {
+  const response = await api.get('/patients');
+  console.log("Fetched patients:", response.data);
+  return response;
+}
+
+export async function deletePatientAPI(patientId: string) {
+  const response = await api.delete(`/patients/${patientId}`);
+  return response;
+}
+
+export async function updatePatientAPI(patientId: string, payload: Partial<PatientPayload>) {
+  const response = await api.put(`/patients/${patientId}`, payload);
+  return response;
+}
+
+// ============================================
+// CARETAKER APIs
+// ============================================
+
+export async function createCaretakerAPI(payload: {
+  userId: string;
+  specialization?: string;
+  experience?: number;
+  licenseNumber?: string;
+}) {
+  const response = await api.post('/caretakers', payload);
+  return response;
+}
+
+export async function fetchCaretakersAPI() {
+  const response = await api.get('/caretakers');
+  return response;
+}
+
+export async function deleteCaretakerAPI(caretakerId: string) {
+  const response = await api.delete(`/caretakers/${caretakerId}`);
+  return response;
+}
+
+export async function updateCaretakerAPI(caretakerId: string, payload: any) {
+  const response = await api.put(`/caretakers/${caretakerId}`, payload);
+  return response;
+}
+

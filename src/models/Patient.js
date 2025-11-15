@@ -1,32 +1,55 @@
 import mongoose from "mongoose";
 
-const patientSchema = new mongoose.Schema(
-  {
-    medicalRecordsId: { type: String },
-    emergencyContacts: [
-      {
-        name: String,
-        relation: String,
-        contact: String,
-        isPrimary: { type: Boolean, default: false },
-      },
-    ],
-    consent_dataSharing: { type: Boolean, default: false },
-    demographics: {
-      age: Number,
-      sex: String,
-      ethnicity: String,
-      weight: Number,
-      height: Number,
-    },
-    careTeam_doctors: [
-      { type: mongoose.Schema.Types.ObjectId, ref: "Doctor" },
-    ],
-    careTeam_caretakers: [
-      { type: mongoose.Schema.Types.ObjectId, ref: "Caretaker" },
-    ],
+const PatientSchema = new mongoose.Schema({
+  fullName: { type: String, required: true },
+  medicalRecordsId: { type: String },
+  
+  userId: { 
+    type: String,
+    // Optional: support non-ObjectId user identifiers
   },
-  { timestamps: true }
-);
 
-export default mongoose.models.Patient || mongoose.model("Patient", patientSchema);
+  demographics: {
+    age: Number,
+    sex: String,
+    height: Number,
+    weight: Number,
+  },
+
+  medicalHistory: Array,
+  allergies: [String],
+
+  assignedDoctor: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Doctor",
+    default: null,
+  },
+
+  assignedCaretaker: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Caretaker",
+    default: null,
+  },
+
+  emergencyContacts: [
+    {
+      name: String,
+      relation: String,
+      contact: String,
+      isPrimary: Boolean,
+    },
+  ],
+
+  consent_dataSharing: { type: Boolean, default: false },
+
+  careTeam_doctors: [{ type: String }],
+  careTeam_caretakers: [{ type: String }],
+
+  reports: [
+    { type: mongoose.Schema.Types.ObjectId, ref: "Report" }
+  ],
+}, { 
+  timestamps: true
+});
+
+export default mongoose.models.Patient || mongoose.model("Patient", PatientSchema);
