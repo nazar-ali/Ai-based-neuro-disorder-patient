@@ -1,111 +1,216 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import axios from "axios";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { on } from "events";
-
-interface Doctor {
-  _id: string;
-  userId: { fullName: string; email: string };
-  specialization: string;
-  licenseNumber?: string;
-  experienceYears: number;
-}
+import { useDoctorStore } from "@/store/useDoctorStore";
+import { createUserAPI, createDoctorAPI } from "@/lib/api";
 
 interface AddDoctorDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
-export default function AddDoctorDialog({open, onOpenChange}: AddDoctorDialogProps) {
-  const [doctors, setDoctors] = useState<Doctor[]>([]);
+
+export default function AddDoctorDialog({ open, onOpenChange }: AddDoctorDialogProps) {
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const addDoctor = useDoctorStore((state) => state.addDoctor);
   const [form, setForm] = useState({
-    userId: "",
+    fullName: "",
+    email: "",
+    password: "",
     specialization: "",
     licenseNumber: "",
     experienceYears: 0,
+    certifications: [] as Array<{ level: string; body: string; validUntil: string }>,
   });
 
-  // Fetch doctors
-  useEffect(() => {
-    axios.get("/api/doctors").then((res) => setDoctors(res.data));
-  }, []);
-
-  // Add doctor
   const handleAdd = async () => {
     try {
-      await axios.post("/api/doctors", form);
-      onOpenChange(false);
-      setForm({ userId: "", specialization: "", licenseNumber: "", experienceYears: 0 });
-      const res = await axios.get("/api/doctors");
-      setDoctors(res.data);
-    } catch (err) {
-      console.error(err);
+      setLoading(true);
+      setMessage("");
+
+      // Validate required fields
+      if (!form.fullName || !form.email || !form.password) {
+        setMessage("❌ Full name, email, and password are required");
+        return;
+      }
+
+      // STEP 1: Create User (role = doctor)
+      const userRes = await createUserAPI({
+        fullName: form.fullName,
+        email: form.email,
+        password: form.password,
+        role: "doctor",
+      });
+
+      const createdUserId = userRes?.data?._id;
+      if (!createdUserId) {
+        setMessage("❌ Failed to create user: no ID returned");
+        return;
+      }
+
+      // STEP 2: Create Doctor Profile using the created user's id
+      const doctorPayload = {
+        userId: createdUserId,
+        specialization: form.specialization || undefined,
+        licenseNumber: form.licenseNumber || undefined,
+        experienceYears: form.experienceYears || 0,
+        certifications: form.certifications.length > 0 ? form.certifications : undefined,
+      };
+
+      const doctorRes = await createDoctorAPI(doctorPayload);
+      
+      // Store doctor data in Zustand store
+      const doctorData = doctorRes?.data;
+      if (doctorData) {
+        addDoctor({
+          _id: doctorData._id,
+          userId: doctorData.userId,
+          fullName: form.fullName,
+          email: form.email,
+          specialization: form.specialization,
+          licenseNumber: form.licenseNumber,
+          experienceYears: form.experienceYears,
+          certifications: form.certifications.map((cert) => ({
+            ...cert,
+            validUntil: cert.validUntil ? new Date(cert.validUntil) : undefined,
+          })),
+        });
+      }
+
+      setMessage("✅ Doctor created successfully!");
+
+      // Reset
+      setForm({
+        fullName: "",
+        email: "",
+        password: "",
+        specialization: "",
+        licenseNumber: "",
+        experienceYears: 0,
+        certifications: [],
+      });
+
+      setTimeout(() => {
+        onOpenChange(false);
+        setMessage("");
+      }, 1500);
+    } catch (error: any) {
+      console.error("Error adding doctor:", error);
+      setMessage(`❌ Error: ${error.message || "Unknown error"}`);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-          <DialogContent className="sm:max-w-[500px] shadow-lg border border-gray-200 bg-gray-50">
-            <DialogHeader>
-              <DialogTitle className="text-3xl font-extrabold flex items-center gap-3 text-gray-900 dark:text-gray-50">Add New Doctor</DialogTitle>
-            </DialogHeader>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px] shadow-lg border border-gray-200 bg-gray-50">
+        <DialogHeader>
+          <DialogTitle className="text-3xl font-extrabold text-gray-900">
+            Add New Doctor
+          </DialogTitle>
+        </DialogHeader>
 
-            <div className="space-y-4 ">
-              <div>
-                <Label>User ID</Label>
-                <Input
-                  value={form.userId}
-                  onChange={(e) => setForm({ ...form, userId: e.target.value })}
-                  placeholder="Enter User ID"
-                  className="mt-2"
-                />
-              </div>
+        {message && (
+          <div className={`text-sm font-medium text-center ${message.includes("✅") ? "text-green-600" : "text-red-600"}`}>
+            {message}
+          </div>
+        )}
 
-              <div>
-                <Label>Specialization</Label>
-                <Input
-                  value={form.specialization}
-                  onChange={(e) => setForm({ ...form, specialization: e.target.value })}
-                  placeholder="e.g. Neurologist"
-                                    className="mt-2"
+        <div className="space-y-4">
 
-                />
-              </div>
+          {/* Full Name */}
+          <div>
+            <Label>Full Name</Label>
+            <Input
+              value={form.fullName}
+              onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+              placeholder="Doctor name"
+              className="mt-2"
+            />
+          </div>
 
-              <div>
-                <Label>License Number</Label>
-                <Input
-                  value={form.licenseNumber}
-                  onChange={(e) => setForm({ ...form, licenseNumber: e.target.value })}
-                  placeholder="Optional"
-                                    className="mt-2"
+          {/* Email */}
+          <div>
+            <Label>Email</Label>
+            <Input
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              placeholder="doctor@example.com"
+              className="mt-2"
+            />
+          </div>
 
-                />
-              </div>
+          {/* Password */}
+          <div>
+            <Label>Password</Label>
+            <Input
+              type="password"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              placeholder="Enter password"
+              className="mt-2"
+            />
+          </div>
 
-              <div>
-                <Label>Experience (years)</Label>
-                <Input
-                  type="number"
-                  value={form.experienceYears}
-                  onChange={(e) =>
-                    setForm({ ...form, experienceYears: Number(e.target.value) })
-                  }
-                                    className="mt-2"
+          {/* Specialization */}
+          <div>
+            <Label>Specialization</Label>
+            <Input
+              value={form.specialization}
+              onChange={(e) =>
+                setForm({ ...form, specialization: e.target.value })
+              }
+              placeholder="e.g. Neurologist"
+              className="mt-2"
+            />
+          </div>
 
-                />
-              </div>
+          {/* License */}
+          <div>
+            <Label>License Number</Label>
+            <Input
+              value={form.licenseNumber}
+              onChange={(e) =>
+                setForm({ ...form, licenseNumber: e.target.value })
+              }
+              placeholder="Optional"
+              className="mt-2"
+            />
+          </div>
 
-              <Button className="bg-slate-400 w-full text-md hover:bg-slate-600 text-white font-medium shadow-sm transition-all">
-Save</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-     
+          {/* Experience */}
+          <div>
+            <Label>Experience (years)</Label>
+            <Input
+              type="number"
+              value={form.experienceYears}
+              onChange={(e) =>
+                setForm({ ...form, experienceYears: Number(e.target.value) })
+              }
+              className="mt-2"
+            />
+          </div>
+
+          <Button
+            onClick={handleAdd}
+            disabled={loading}
+            className="bg-slate-500 hover:bg-slate-700 text-white w-full"
+          >
+            {loading ? "Saving..." : "Save Doctor"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

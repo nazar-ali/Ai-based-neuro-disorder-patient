@@ -1,37 +1,27 @@
 import mongoose from "mongoose";
-// Ensure Patient model is registered before using it in refs/populate.
-// This avoids MissingSchemaError when calling populate("assignedPatients").
-import "@/models/Patient";
 
-const doctorSchema = new mongoose.Schema(
-  {
-    // 🧑‍⚕️ Connects doctor profile with user login
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
+const DoctorSchema = new mongoose.Schema({
+  // Support non-Mongo IDs (string) for userId
+  userId: { type: String, required: true },
+  // Optional user info fields (useful when not linking to a separate User collection)
+  fullName: { type: String },
+  email: { type: String },
 
-    // 📋 Optional professional details
-    specialization: { type: String },
-    experienceYears: { type: Number, default: 0 },
-    licenseNumber: { type: String },
+  specialization: String,
+  experience: Number,
 
-    // 🎓 Certifications
-    certifications: [
-      {
-        level: { type: String }, // e.g., "MBBS", "MD", "PhD"
-        body: { type: String }, // e.g., "Pakistan Medical Council"
-        validUntil: { type: Date },
-      },
-    ],
+  assignedPatients: [
+    // Patients are represented as users (role: 'patient') in this app
+    { type: mongoose.Schema.Types.ObjectId, ref: "User" }
+  ],
 
-    // 🩺 Assigned patients (Doctor’s case list)
-    assignedPatients: [
-      { type: mongoose.Schema.Types.ObjectId, ref: "Patient" },
-    ],
-  },
-  { timestamps: true }
-);
+  schedule: [
+    {
+      day: String,
+      start: String,
+      end: String,
+    }
+  ],
+});
 
-export default mongoose.models.Doctor || mongoose.model("Doctor", doctorSchema);
+export default mongoose.models.Doctor || mongoose.model("Doctor", DoctorSchema);
