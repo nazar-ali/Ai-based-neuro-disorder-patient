@@ -1,4 +1,5 @@
 import User from "@/models/User";
+import bcrypt from "bcryptjs";
 import { hashPassword } from "@/lib/auth/auth.service";
 
 export const createSuperAdminIfNotExists = async () => {

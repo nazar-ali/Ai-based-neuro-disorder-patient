@@ -21,8 +21,10 @@ export async function POST(req) {
       );
     }
 
-    // FIND USER
+    // Find user
     const user = await User.findOne({ email }).select("+password");
+
+    console.log("No user found with email:", email);
     if (!user) {
       console.log("User not found in DB:", email);
       return NextResponse.json(
@@ -31,10 +33,9 @@ export async function POST(req) {
       );
     }
 
-   
-    const isMatch = await comparePassword(password, user.password);
-    console.log("Password match:", isMatch);
-
+    // Compare raw password with stored hashed password
+    const isMatch = await comparePassword(password,  user.password);
+console.log("show password",password,user.password);
     if (!isMatch) {
       console.log("Password mismatch for user:", email);
       return NextResponse.json(
