@@ -51,7 +51,7 @@ export function DataTable<TData, TValue>({
     <div className="w-full space-y-4">
       {title && <h2 className="text-md font-bold">{title}</h2>}
 
-      <div className="rounded-md border sm:max-h-[500px] overflow-auto bg-white ">
+      <div className="rounded-md border border-gray-300 shadow-lg sm:max-h-[500px] overflow-auto bg-white ">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -111,7 +111,7 @@ export function DataTable<TData, TValue>({
             <SelectTrigger className="w-20">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-white ">
               <SelectItem value="10">10</SelectItem>
               <SelectItem value="20">20</SelectItem>
               <SelectItem value="30">30</SelectItem>

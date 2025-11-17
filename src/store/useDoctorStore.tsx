@@ -1,140 +1,164 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import { fetchDoctorsAPI, deleteDoctorAPI } from "@/lib/api";
+"use client";
+
+import { create, StateCreator } from "zustand";
+import api from "@/lib/axiosClient";
+
+// ==================================================
+// 📌 Types
+// ==================================================
+
+export interface DoctorSchedule {
+  day: string;
+  start: string;
+  end: string;
+}
 
 export interface Doctor {
-  _id: string;
+  // _id: string;
   userId: string;
-  fullName: string;
-  email: string;
+
+  fullName?: string;
+  email?: string;
+
   specialization?: string;
-  licenseNumber?: string;
-  experienceYears?: number;
-  certifications?: Array<{
-    level: string;
-    body: string;
-    validUntil?: Date;
-  }>;
-  assignedPatients?: string[];
-  createdAt?: string;
-  updatedAt?: string;
+  experience?: number;
+
+  assignedPatients: string[];
+
+  schedule: DoctorSchedule[];
 }
 
 interface DoctorStore {
   doctors: Doctor[];
-  currentDoctor: Doctor | null;
+  doctor: Doctor | null;
+  selectedDoctor: Doctor | null;
   loading: boolean;
-  error: string | null;
+  error?: string | null;
 
-  // Actions
-  addDoctor: (doctor: Doctor) => void;
-  setDoctors: (doctors: Doctor[]) => void;
-  setCurrentDoctor: (doctor: Doctor | null) => void;
-  removeDoctor: (doctorId: string) => void;
-  setLoading: (loading: boolean) => void;
-  setError: (error: string | null) => void;
-  clearStore: () => void;
-  fetchDoctors: () => Promise<void>;
-  deleteDoctor: (doctorId: string) => Promise<boolean>;
+  addDoctor: (
+    formData: Doctor
+  ) => Promise<{ success: boolean; message?: string }>;
+
+  viewDoctor: (
+    id: string
+  ) => Promise<{ success: boolean; message?: string }>;
+
+  getAllDoctors: () => Promise<void>;
+
+  deleteDoctor: (
+    id: string
+  ) => Promise<{ success: boolean; message?: string }>;
+
+  setSelectedDoctor: (doctor: Doctor | null) => void;
 }
 
-export const useDoctorStore = create<DoctorStore>()(
-  persist(
-    (set) => ({
-      doctors: [],
-      currentDoctor: null,
-      loading: false,
-      error: null,
+// ==================================================
+// 📌 Store Creator
+// ==================================================
 
-      addDoctor: (doctor: Doctor) =>
+const doctorStore: StateCreator<DoctorStore> = (set, get) => ({
+  doctors: [],
+  doctor: null,
+  selectedDoctor: null,
+  loading: false,
+  error: null,
+
+  // ==================================================
+  // ➤ Add doctor
+  // ==================================================
+  addDoctor: async (formData:Doctor) => {
+    set({ loading: true, error: null });
+
+    try {
+      const res = await api.post("/doctor", formData);
+
+      if (res.success) {
         set((state) => ({
-          doctors: [...state.doctors, doctor],
-          currentDoctor: doctor,
-        })),
-
-      setDoctors: (doctors: Doctor[]) =>
-        set({
-          doctors,
-        }),
-
-      setCurrentDoctor: (doctor: Doctor | null) =>
-        set({
-          currentDoctor: doctor,
-        }),
-
-      removeDoctor: (doctorId: string) =>
-        set((state) => ({
-          doctors: state.doctors.filter((d) => d._id !== doctorId),
-          currentDoctor: state.currentDoctor?._id === doctorId ? null : state.currentDoctor,
-        })),
-
-      setLoading: (loading: boolean) =>
-        set({
-          loading,
-        }),
-
-      setError: (error: string | null) =>
-        set({
-          error,
-        }),
-
-      clearStore: () =>
-        set({
-          doctors: [],
-          currentDoctor: null,
+          doctors: [...state.doctors, res.doctor],
           loading: false,
-          error: null,
-        }),
+        }));
 
-      fetchDoctors: async () => {
-        set({ loading: true, error: null });
-        try {
-          const data = await fetchDoctorsAPI();
-          // Normalize doctors so UI always has top-level fullName and email
-          const normalized = (data.data || []).map((d: any) => {
-            const copy = { ...d };
-            if (copy.userId && typeof copy.userId === 'object') {
-              copy.fullName = copy.userId.fullName || copy.fullName;
-              copy.email = copy.userId.email || copy.email;
-            }
-            // ensure experienceYears exists for UI
-            copy.experienceYears = copy.experienceYears ?? copy.experience ?? undefined;
-            return copy;
-          });
-          set({
-            doctors: normalized,
-            loading: false,
-          });
-        } catch (error) {
-          const errorMsg = error instanceof Error ? error.message : "Unknown error";
-          console.error("❌ Error fetching doctors:", errorMsg);
-          set({
-            error: errorMsg,
-            loading: false,
-          });
-        }
-      },
+        return { success: true, message: res.message };
+      }
 
-      deleteDoctor: async (doctorId: string) => {
-        try {
-          await deleteDoctorAPI(doctorId);
-          // Remove from store
-          set((state) => ({
-            doctors: state.doctors.filter((d) => d._id !== doctorId),
-            currentDoctor: state.currentDoctor?._id === doctorId ? null : state.currentDoctor,
-          }));
-          return true;
-        } catch (error) {
-          const errorMsg = error instanceof Error ? error.message : "Unknown error";
-          console.error("❌ Error deleting doctor:", errorMsg);
-          set({ error: errorMsg });
-          return false;
-        }
-      },
-    }),
-    {
-      name: "doctor-store", // localStorage key
-      version: 1,
+      set({ loading: false, error: res.message });
+      return { success: false, message: res.message };
+    } catch (err: any) {
+      set({ loading: false, error: err.message });
+      return { success: false, message: err.message };
     }
-  )
-);
+  },
+
+  // ==================================================
+  // ⭐ Set Selected Doctor (for modals)
+  // ==================================================
+  setSelectedDoctor: (doctor) => set({ selectedDoctor: doctor }),
+
+  // ==================================================
+  // ➤ View doctor (GET ONE)
+  // ==================================================
+  viewDoctor: async (id: string) => {
+    set({ loading: true, error: null });
+
+    try {
+      const res = await api.get(`/doctor/${id}`);
+
+      if (!res.success) {
+        return { success: false, message: res.message };
+      }
+
+      set({ selectedDoctor: res.doctor });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  // ==================================================
+  // ➤ Get ALL doctors
+  // ==================================================
+  getAllDoctors: async () => {
+    set({ loading: true, error: null });
+
+    try {
+      const res = await api.get("/doctors");
+        console.log("getAllDoctors res:", res);
+      if (res.success) {
+        set({ doctors: res.doctors });
+      }
+    } catch (err: any) {
+      set({ error: err.message });
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  // ==================================================
+  // ➤ Delete doctor
+  // ==================================================
+  deleteDoctor: async (id: string) => {
+    try {
+      const res = await api.delete(`/doctor/${id}`);
+
+      if (!res.success) {
+        return { success: false, message: res.message };
+      }
+
+      set({
+        doctors: get().doctors.filter((d) => d.userId !== id),
+      });
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
+  },
+});
+
+// ==================================================
+// 📌 Export Store
+// ==================================================
+
+export const useDoctorStore = create<DoctorStore>()(doctorStore);

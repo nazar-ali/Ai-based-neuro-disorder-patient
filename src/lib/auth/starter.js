@@ -1,14 +1,13 @@
 import User from "@/models/User";
-import bcrypt from "bcryptjs";
 import { hashPassword } from "@/lib/auth/auth.service";
 
 export const createSuperAdminIfNotExists = async () => {
-  const email = "admin@healthcare.com";
+  const email = "super@healthcare.com";
 
   const existingAdmin = await User.findOne({ email });
 
   if (!existingAdmin) {
-    const hashedPassword = await hashPassword("Admin@12345");
+    const hashedPassword = await hashPassword('Nazar@123');
 
     await User.create({
       fullName: "System Admin",

@@ -13,11 +13,15 @@ export interface AddCaretakerDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+
+
 export interface Caretaker {
-  _id: string;
+  _id?: string;
+  userId: string;
   fullName: string;
-  email?: string;
-  assignedPatients?: Array<{ _id: string; fullName?: string }>;
-  patientSummary?: string; // generic summary field if you keep per-caretaker summary
-  createdAt?: string;
+  email: string;
+  password?: string;
+  contactNo: string;
+  assignedPatients?: string[];
+
 }

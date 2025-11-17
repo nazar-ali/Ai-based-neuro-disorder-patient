@@ -15,20 +15,19 @@ export async function registerUserAPI(formData: FormData) {
   });
 
   if (!res || (res as any)?.success === false) {
-    throw new Error((res as any)?.error || "Failed to register user");
+    throw new Error((res as any)?.error || "Faile d to register user");
   }
 
   return res;
 }
-
-export async function loginUserAPI(payload: {
-  email: string;
-  password: string;
-  role: string;  // ADD ROLE
-}) {
+  
+export async function loginUserAPI({ email, password, role }: { email: string; password: string; role: string }) {
   try {
-    console.log("Login payload:", payload);
-    const response = await api.post("/auth/login", payload);
+    const response = await api.post("/auth/login", {
+      email,
+      password,
+      role
+    });
 
     return {
       success: true,
@@ -40,10 +39,14 @@ export async function loginUserAPI(payload: {
       error:
         error.response?.data?.error ||
         error.response?.data?.message ||
-        "Network error. Try again.",
+        "Network error.",
     };
   }
 }
+
+
+
+
 
 
 

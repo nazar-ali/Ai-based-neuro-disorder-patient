@@ -1,6 +1,6 @@
 import dbConnect from "@/lib/mongoose";
 import User from "@/models/User";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { passwordRegex } from "@/constants";
 import { NextResponse } from "next/server";
 import { loginUser } from "@/lib/auth/loginUser";
@@ -89,12 +89,12 @@ export async function POST(req) {
     // -----------------------------
     let accessToken = null;
 
-    try {
-      const loginResult = await loginUser(email, password);
-      accessToken = loginResult?.accessToken;
-    } catch (err) {
-      console.error("⚠️ Auto-login failed:", err.message);
-    }
+    // try {
+    //   const loginResult = await loginUser(email, password);
+    //   accessToken = loginResult?.accessToken;
+    // } catch (err) {
+    //   console.error("⚠️ Auto-login failed:", err.message);
+    // }
 
     // -----------------------------
     // 9️⃣ Final Response

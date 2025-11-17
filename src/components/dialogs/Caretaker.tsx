@@ -1,222 +1,182 @@
 "use client";
 
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Save, PlusCircle, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { useCaretakerStore } from "@/store/useCareTaker";
+
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  AddCaretakerDialogProps,
-  CaretakerForm,
-  DailySummary,
-} from "@/types/careTaker";
-import { createCaretakerAPI } from "@/lib/api";
+import { Label } from "@/components/ui/label";
+import { AddCaretakerDialogProps } from "@/types/careTaker";
+import { toast } from "sonner";
 
-export default function AddCaretakerDialog({
-  open,
-  onOpenChange,
-}: AddCaretakerDialogProps) {
-  const [form, setForm] = useState<CaretakerForm>({
-    assignedPatient: "",
-    dailySummaries: [{ date: "", summary: "" }],
+export default function AddCaretakerDialog({ open, onOpenChange }: AddCaretakerDialogProps) {
+  const { addCaretaker, loading } = useCaretakerStore();
+   
+  const [form, setForm] = useState({
+    userId: "",
+    fullName: "",
+    email: "",
+    password: "",
+    contactNo: "",
+    // accept comma-separated ids in the input, we'll convert to array on submit
+    assignedPatients: "",
   });
 
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
-  const handleSummaryChange = (
-    index: number,
-    field: keyof DailySummary,
-    value: string
-  ) => {
-    const updated = [...form.dailySummaries];
-    updated[index][field] = value;
-    setForm({ ...form, dailySummaries: updated });
+  const handleChange = (e: any) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const addSummary = () =>
-    setForm({
-      ...form,
-      dailySummaries: [...form.dailySummaries, { date: "", summary: "" }],
-    });
+  const handleSubmit = async () => {
+    setError("");
 
-  const removeSummary = (index: number) => {
-    if (form.dailySummaries.length === 1) return;
-    setForm({
-      ...form,
-      dailySummaries: form.dailySummaries.filter((_, i) => i !== index),
-    });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setMessage("");
-
-    try {
-      const payload = {
-        assignedPatient: form.assignedPatient,
-        dailySummaries: form.dailySummaries.filter(s => s.date && s.summary),
-      };
-
-      if (!payload.assignedPatient || payload.dailySummaries.length === 0) {
-        setMessage("❌ Please fill in all required fields");
-        return;
-      }
-
-      await createCaretakerAPI(payload);
-      
-      setMessage("✅ Caretaker added successfully!");
-      setForm({
-        assignedPatient: "",
-        dailySummaries: [{ date: "", summary: "" }],
-      });
-      
-      setTimeout(() => {
-        onOpenChange(false);
-        setMessage("");
-      }, 1500);
-    } catch (error: any) {
-      console.error("Error adding caretaker:", error);
-      setMessage(`❌ Error: ${error.message || "Unknown error"}`);
-    } finally {
-      setLoading(false);
+    if (
+      !form.userId ||
+      !form.fullName ||
+      !form.email ||
+      !form.password ||
+      !form.contactNo
+    ) {
+      setError("All fields are required!");
+      return;
     }
+
+    // convert comma separated string -> array of trimmed ids, remove empty strings
+    const assignedPatientsArray = form.assignedPatients
+      ? form.assignedPatients.split(",").map((s) => s.trim()).filter(Boolean)
+      : [];
+
+    // prepare payload expected by your API/store
+    const payload = {
+      userId: form.userId,
+      fullName: form.fullName,
+      email: form.email,
+      password: form.password,
+      contactNo: form.contactNo,
+      assignedPatients: assignedPatientsArray,
+    };
+
+    const res = await addCaretaker(payload);
+    if (res.success) {
+      toast.success("Caretaker created successfully 🎉");
+       onOpenChange(false);
+        setForm({
+      userId: "",
+      fullName: "",
+      email: "",
+      password: "",
+      contactNo: "",
+      assignedPatients: "",
+    });
+    } else {
+      toast.error(res.message || "Failed to add caretaker");
+    }
+
+    
+   
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      {/* Trigger Button */}
-      <DialogTrigger asChild>
-        <Button className="bg-amber-600 hover:bg-amber-700 text-white font-medium shadow-sm transition-all">
-          <PlusCircle className="mr-2 h-4 w-4" /> Add Caretaker
-        </Button>
-      </DialogTrigger>
-
-      {/* Dialog */}
-      <DialogContent className="fixed sm:max-w-[700px] p-6 rounded-2xl shadow-lg border border-gray-200 bg-white">
-        <div className="p-2 overflow-auto max-h-[80vh]">
+      <DialogContent className="max-w-lg bg-white">
         <DialogHeader>
-          <DialogTitle  className="text-3xl font-extrabold flex items-center gap-3 text-gray-900 dark:text-gray-50">
-            Add New Caretaker
+          <DialogTitle className="text-xl font-semibold">
+            Create Caretaker
           </DialogTitle>
-          <DialogDescription className="text-sm text-gray-500">
-            Assign a caretaker to a patient and record daily summaries.
-          </DialogDescription>
         </DialogHeader>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-6 mt-4">
-          {/* Assigned Patient */}
-          <section className="space-y-2">
-            <h3 className="text-lg font-medium text-gray-800 ">
-              Assigned Patient
-            </h3>
+        <div className="grid gap-4 py-2">
+          {/* User ID */}
+          <div>
+            <Label>User ID</Label>
             <Input
-              name="assignedPatient"
-              placeholder="Enter patient ObjectId or name"
-              value={form.assignedPatient}
-              onChange={(e) =>
-                setForm({ ...form, assignedPatient: e.target.value })
-              }
-              className="border-gray-300 focus-visible:ring-amber-500"
+              name="userId"
+              placeholder="Enter User ID"
+              value={form.userId}
+              onChange={handleChange}
             />
-          </section>
-
-          {/* Daily Summaries */}
-          <section className="space-y-3">
-            <h3 className="text-lg font-medium text-gray-800 ">
-              Daily Summaries
-            </h3>
-
-            {form.dailySummaries.map((summary, index) => (
-              <div
-                key={index}
-                className="p-4 border rounded-xl bg-gray-50 shadow-sm hover:shadow-md transition-all duration-200 relative"
-              >
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium text-gray-700">
-                    Entry #{index + 1}
-                  </span>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => removeSummary(index)}
-                    disabled={form.dailySummaries.length === 1}
-                    className="text-red-500 hover:text-red-600 hover:bg-transparent"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-medium text-gray-600">
-                      Date
-                    </label>
-                    <Input
-                      type="date"
-                      value={summary.date}
-                      onChange={(e) =>
-                        handleSummaryChange(index, "date", e.target.value)
-                      }
-                      className="mt-1"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="text-xs font-medium text-gray-600">
-                      Summary
-                    </label>
-                    <Textarea
-                      placeholder="Write a brief summary..."
-                      value={summary.summary}
-                      onChange={(e) =>
-                        handleSummaryChange(index, "summary", e.target.value)
-                      }
-                      className="mt-1 min-h-[80px]"
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            <Button
-              type="button"
-              variant="outline"
-              onClick={addSummary}
-              className="w-full border-amber-600 text-amber-600 hover:bg-amber-50 transition-colors"
-            >
-              <PlusCircle className="mr-2 h-4 w-4" /> Add Another Summary
-            </Button>
-          </section>
-
-          {/* Submit */}
-          <div className="flex justify-end pt-2">
-            <Button
-              type="submit"
-              disabled={loading}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 shadow-md transition-all"
-            >
-              {loading ? "Saving..." : <><Save className="mr-2 h-4 w-4" /> Save Caretaker</>}
-            </Button>
           </div>
 
-          {message && (
-            <p className="text-center text-sm font-medium text-gray-600">
-              {message}
+          {/* Full Name */}
+          <div>
+            <Label>Full Name</Label>
+            <Input
+              name="fullName"
+              placeholder="Caretaker Name"
+              value={form.fullName}
+              onChange={handleChange}
+            />
+          </div>
+
+          {/* Email */}
+          <div>
+            <Label>Email</Label>
+            <Input
+              type="email"
+              name="email"
+              placeholder="caretaker@example.com"
+              value={form.email}
+              onChange={handleChange}
+            />
+          </div>
+
+          {/* Password */}
+          <div>
+            <Label>Password</Label>
+            <Input
+              type="password"
+              name="password"
+              placeholder="Strong Password"
+              value={form.password}
+              onChange={handleChange}
+            />
+          </div>
+
+          {/* Contact No */}
+          <div>
+            <Label>Contact No</Label>
+            <Input
+              name="contactNo"
+              placeholder="+92312XXXXXXXX"
+              value={form.contactNo}
+              onChange={handleChange}
+            />
+          </div>
+
+          {/* Assigned Patients */}
+          <div>
+            <Label>Assigned Patients</Label>
+            <Input
+              name="assignedPatients"
+              placeholder="Comma separated patient IDs (e.g. id1, id2)"
+              value={form.assignedPatients}
+              onChange={handleChange}
+            />
+            <p className="text-sm text-muted-foreground mt-1">
+              Enter patient IDs separated by commas (optional).
             </p>
-          )}
-        </form>
+          </div>
+
+          {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
         </div>
+
+        <DialogFooter>
+          <Button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            {loading ? "Creating..." : "Create Caretaker"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

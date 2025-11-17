@@ -1,8 +1,27 @@
+export interface DoctorCertification {
+  level: string;
+  body: string;
+  validUntil: string; // always stored as string
+}
+
+export interface Doctor {
+  fullName: string;
+  email: string;
+  phone: string;
+  specialization: string;
+  certifications?: DoctorCertification[];
+}
+
 export interface CreateDoctorPayload {
-  userId: string;
-  specialization?: string;
-  experienceYears?: number;
-  licenseNumber?: string;
-  certifications?: Array<{ level: string; body: string; validUntil: string }>;
-  assignedPatients?: string[];
+  fullName: string;
+  email: string;
+  phone: string;
+  specialization: string;
+  certifications?: DoctorCertification[];
+}
+
+export interface DoctorStoreState {
+  doctors: Doctor[];
+  setDoctors: (docs: Doctor[]) => void;
+  addDoctor: (doctor: CreateDoctorPayload) => void;
 }

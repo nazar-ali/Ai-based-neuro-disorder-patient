@@ -1,17 +1,19 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongoose";
 import User from "@/models/User";
-import { signToken } from "@/lib/jwt";
-import { createSuperAdminIfNotExists } from "@/lib/auth/starter";
 import { comparePassword } from "@/lib/auth/auth.service";
+import { signToken } from "@/lib/jwt";
 
 export async function POST(req) {
   try {
     await dbConnect();
-    await createSuperAdminIfNotExists();
 
-    const { email, password, role } = await req.json();
-console.log("Login attempt:", { email, role,password });
+    
+    const body = await req.json();
+    console.log("Incoming body:", body);
+
+    const { email, password, role } = body;
+
     if (!email || !password || !role) {
       return NextResponse.json(
         { success: false, error: "Email, password, and role are required" },
@@ -19,21 +21,20 @@ console.log("Login attempt:", { email, role,password });
       );
     }
 
-    // Find user
+    // FIND USER
     const user = await User.findOne({ email }).select("+password");
-
-    console.log("No user found with email:", email);
     if (!user) {
-      console.log("No user found with email:", email);
+      console.log("User not found in DB:", email);
       return NextResponse.json(
         { success: false, error: "Invalid email or password" },
         { status: 401 }
       );
     }
 
-    // Compare raw password with stored hashed password
-    const isMatch = await comparePassword(password,  user.password);
-console.log("show password",password,user.password);
+   
+    const isMatch = await comparePassword(password, user.password);
+    console.log("Password match:", isMatch);
+
     if (!isMatch) {
       console.log("Password mismatch for user:", email);
       return NextResponse.json(
@@ -42,7 +43,7 @@ console.log("show password",password,user.password);
       );
     }
 
-    // Role check
+    // ROLE CHECK
     if (user.role.toLowerCase() !== role.toLowerCase()) {
       return NextResponse.json(
         { success: false, error: "Invalid role for this account" },
@@ -50,44 +51,38 @@ console.log("show password",password,user.password);
       );
     }
 
-    // Generate JWT
+    // JWT
     const token = signToken({
       id: user._id.toString(),
       email: user.email,
       role: user.role,
     });
 
-    // Safe user data
-    const userData = {
-      id: user._id.toString(),
-      fullName: user.fullName,
-      email: user.email,
-      role: user.role,
-      profileImageUrl: user.profileImageUrl || null,
-    };
-
-    // Send response
     const response = NextResponse.json({
       success: true,
       data: {
         message: "Login successful",
-        user: userData,
+        user: {
+          id: user._id,
+          fullName: user.fullName,
+          email: user.email,
+          role: user.role,
+          profileImageUrl: user.profileImageUrl || null,
+        },
         accessToken: token,
       },
     });
 
-    // Set auth cookie
     response.cookies.set("access_token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      path: "/",
       maxAge: 7 * 24 * 60 * 60,
     });
 
     return response;
   } catch (error) {
-    console.error("Login Error:", error);
+    console.error("🔥 LOGIN ERROR:", error);
     return NextResponse.json(
       { success: false, error: "Internal Server Error" },
       { status: 500 }

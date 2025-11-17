@@ -70,20 +70,20 @@ const UserSchema = new mongoose.Schema(
 // -------------------------------------------------
 // 🔐 PASSWORD HASHING (only when modified)
 // -------------------------------------------------
-UserSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
+// UserSchema.pre("save", async function (next) {
+//   if (!this.isModified("password")) return next();
 
-  this.password = await bcrypt.hash(this.password, 12);
-  next();
-});
+//   this.password = await bcrypt.hash(this.password, 12);
+//   next();
+// });
 
 
-// -------------------------------------------------
-// 📌 Password comparison method
-// -------------------------------------------------
-UserSchema.methods.comparePassword = async function (plainPassword) {
-  return await bcrypt.compare(plainPassword, this.password);
-};
+// // -------------------------------------------------
+// // 📌 Password comparison method
+// // -------------------------------------------------
+// UserSchema.methods.comparePassword = async function (plainPassword) {
+//   return await bcrypt.compare(plainPassword, this.password);
+// };
 
 
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,15 +21,15 @@ interface AddDoctorDialogProps {
 export default function AddDoctorDialog({ open, onOpenChange }: AddDoctorDialogProps) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+
   const addDoctor = useDoctorStore((state) => state.addDoctor);
+
   const [form, setForm] = useState({
     fullName: "",
     email: "",
     password: "",
     specialization: "",
-    licenseNumber: "",
-    experienceYears: 0,
-    certifications: [] as Array<{ level: string; body: string; validUntil: string }>,
+    experience: 0,
   });
 
   const handleAdd = async () => {
@@ -43,7 +43,7 @@ export default function AddDoctorDialog({ open, onOpenChange }: AddDoctorDialogP
         return;
       }
 
-      // STEP 1: Create User (role = doctor)
+      // STEP 1 → Create User account
       const userRes = await createUserAPI({
         fullName: form.fullName,
         email: form.email,
@@ -52,51 +52,36 @@ export default function AddDoctorDialog({ open, onOpenChange }: AddDoctorDialogP
       });
 
       const createdUserId = userRes?.data?._id;
+
       if (!createdUserId) {
-        setMessage("❌ Failed to create user: no ID returned");
+        setMessage("❌ Failed to create user");
         return;
       }
 
-      // STEP 2: Create Doctor Profile using the created user's id
+      // STEP 2 → Create Doctor Profile
       const doctorPayload = {
         userId: createdUserId,
+        fullName: form.fullName,
+        email: form.email,
         specialization: form.specialization || undefined,
-        licenseNumber: form.licenseNumber || undefined,
-        experienceYears: form.experienceYears || 0,
-        certifications: form.certifications.length > 0 ? form.certifications : undefined,
+        experience: form.experience,
+        assignedPatients: [],
+        schedule: [],
       };
 
-      const doctorRes = await createDoctorAPI(doctorPayload);
-      
-      // Store doctor data in Zustand store
-      const doctorData = doctorRes?.data;
-      if (doctorData) {
-        addDoctor({
-          _id: doctorData._id,
-          userId: doctorData.userId,
-          fullName: form.fullName,
-          email: form.email,
-          specialization: form.specialization,
-          licenseNumber: form.licenseNumber,
-          experienceYears: form.experienceYears,
-          certifications: form.certifications.map((cert) => ({
-            ...cert,
-            validUntil: cert.validUntil ? new Date(cert.validUntil) : undefined,
-          })),
-        });
-      }
+      const doctorRes = await addDoctor(doctorPayload);
+
+     
 
       setMessage("✅ Doctor created successfully!");
 
-      // Reset
+      // Reset form
       setForm({
         fullName: "",
         email: "",
         password: "",
         specialization: "",
-        licenseNumber: "",
-        experienceYears: 0,
-        certifications: [],
+        experience: 0,
       });
 
       setTimeout(() => {
@@ -121,13 +106,16 @@ export default function AddDoctorDialog({ open, onOpenChange }: AddDoctorDialogP
         </DialogHeader>
 
         {message && (
-          <div className={`text-sm font-medium text-center ${message.includes("✅") ? "text-green-600" : "text-red-600"}`}>
+          <div
+            className={`text-sm font-medium text-center ${
+              message.includes("✅") ? "text-green-600" : "text-red-600"
+            }`}
+          >
             {message}
           </div>
         )}
 
         <div className="space-y-4">
-
           {/* Full Name */}
           <div>
             <Label>Full Name</Label>
@@ -176,31 +164,19 @@ export default function AddDoctorDialog({ open, onOpenChange }: AddDoctorDialogP
             />
           </div>
 
-          {/* License */}
-          <div>
-            <Label>License Number</Label>
-            <Input
-              value={form.licenseNumber}
-              onChange={(e) =>
-                setForm({ ...form, licenseNumber: e.target.value })
-              }
-              placeholder="Optional"
-              className="mt-2"
-            />
-          </div>
-
           {/* Experience */}
           <div>
             <Label>Experience (years)</Label>
             <Input
               type="number"
-              value={form.experienceYears}
+              value={form.experience}
               onChange={(e) =>
-                setForm({ ...form, experienceYears: Number(e.target.value) })
+                setForm({ ...form, experience: Number(e.target.value) })
               }
               className="mt-2"
             />
           </div>
+          
 
           <Button
             onClick={handleAdd}

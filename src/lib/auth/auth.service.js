@@ -1,12 +1,11 @@
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
-// Hash password
 export const hashPassword = async (password) => {
-  const salt = await bcrypt.genSalt(10); // cost factor 12 (good security)
+  const salt = await bcrypt.genSalt(10);
   return bcrypt.hash(password, salt);
 };
 
-// Compare password
 export const comparePassword = async (plain, hashed) => {
+  console.log("Comparing passwords:", { plain, hashed });
   return bcrypt.compare(plain, hashed);
 };

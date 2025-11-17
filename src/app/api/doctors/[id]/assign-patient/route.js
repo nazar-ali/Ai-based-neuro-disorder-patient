@@ -1,37 +1,41 @@
+import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongoose";
+import Doctor from "@/models/Docters";
+import Patient from "@/models/Patient";
+import User from "@/models/User";
 
-// POST: assign a patient to a doctor (updates User.assignedDoctor, Patient.assignedDoctor and Doctor.assignedPatients)
 export async function POST(req, { params }) {
   try {
     await dbConnect();
 
-    const doctorId = params.id; // expecting doctor userId or doctor._id
-    const body = await req.json();
-    const { patientId } = body;
-    if (!patientId) return new Response(JSON.stringify({ success: false, error: 'patientId required' }), { status: 400 });
+    const { patientId } = await req.json();
+    if (!patientId)
+      return NextResponse.json({ success: false, message: "patientId required" }, { status: 400 });
 
-    const User = (await import("@/models/User")).default;
-    const Patient = (await import("@/models/Patient")).default;
-    const Doctor = (await import("@/models/Docters")).default;
+    const doctor = await Doctor.findById(params.id);
+    if (!doctor)
+      return NextResponse.json({ success: false, message: "Doctor not found" }, { status: 404 });
 
-    // Find doctor record
-    let doctorDoc = await Doctor.findOne({ userId: doctorId });
-    if (!doctorDoc) doctorDoc = await Doctor.findById(doctorId);
+    await Doctor.findByIdAndUpdate(doctor._id, {
+      $addToSet: { assignedPatients: patientId }
+    });
 
-    // Update User.assignedDoctor
-    await User.findByIdAndUpdate(patientId, { assignedDoctor: doctorId });
+    await User.findByIdAndUpdate(patientId, { assignedDoctor: doctor._id });
 
-    // Ensure Patient exists and set assignedDoctor
-    const pat = await Patient.findOneAndUpdate({ userId: String(patientId) }, { $set: { assignedDoctor: doctorDoc ? doctorDoc._id : null } }, { upsert: true, new: true });
+    await Patient.findOneAndUpdate(
+      { userId: patientId },
+      { assignedDoctor: doctor._id },
+      { upsert: true }
+    );
 
-    // Add to Doctor.assignedPatients (store patient user ObjectId)
-    if (doctorDoc) {
-      await Doctor.findByIdAndUpdate(doctorDoc._id, { $addToSet: { assignedPatients: pat.userId } });
-    }
-
-    return new Response(JSON.stringify({ success: true, message: 'Patient assigned', patient: pat }), { status: 200 });
+    return NextResponse.json(
+      { success: true, message: "Patient assigned" },
+      { status: 200 }
+    );
   } catch (err) {
-    console.error('Error assigning patient to doctor', err);
-    return new Response(JSON.stringify({ success: false, error: err.message || String(err) }), { status: 500 });
+    return NextResponse.json(
+      { success: false, error: err.message },
+      { status: 500 }
+    );
   }
 }

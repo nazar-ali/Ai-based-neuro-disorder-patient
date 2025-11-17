@@ -1,122 +1,136 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { DataTable } from "@/components/DataTable"
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/DataTable";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
-import { doctorColumns } from "@/components/dashboard/doctorColumns"
-import { patientColumns } from "@/components/dashboard/patientColumns"
-import { caretakerColumns } from "@/components/dashboard/careTaker"
+import { doctorColumns } from "@/components/dashboard/doctorColumns";
+import { patientColumns } from "@/components/dashboard/patientColumns";
+import { caretakerColumns } from "@/components/dashboard/careTaker";
 
-import { useDoctorStore } from "@/store/useDoctorStore"
-import { usePatientStore } from "@/store/usePatients"
-import { useCaretakerStore } from "@/store/useCareTaker"
-import { useAuthStore } from "@/store/useAuthStore"
+import { useDoctorStore } from "@/store/useDoctorStore";
+import { usePatientStore } from "@/store/usePatients";
+import { useCaretakerStore } from "@/store/useCareTaker";
 
-import AddPatientDialog from "@/components/dialogs/AddPatientDialog"
-import AddDoctorDialog from "@/components/dialogs/AddDoctorDialog"
-import AddCaretakerDialog from "@/components/dialogs/Caretaker"
+import { useLoggedInUser } from "@/hooks/userLoggedIn";
+
+import AddPatientDialog from "@/components/dialogs/AddPatientDialog";
+import AddDoctorDialog from "@/components/dialogs/AddDoctorDialog";
+import AddCaretakerDialog from "@/components/dialogs/Caretaker";
+import ViewCaretakerModal from "@/components/dialogs/veiwCaretakerDialog";
+import DeleteCaretakerModal from "@/components/dialogs/deleteCareTakerDialog";
 
 export default function DashboardPage() {
-  const [rowsPerPage, setRowsPerPage] = useState("10")
-  const [openDialog, setOpenDialog] = useState<"patient" | "doctor" | "caretaker" | null>(null)
+  const [rowsPerPage, setRowsPerPage] = useState("10");
+  const [isViewOpen, setIsViewOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
-  // 🟢 FIX HERE → Auth store has userId, NOT user
-  const role = useAuthStore((s) => s.role)
-  const userId = useAuthStore((s) => s.userId)
-console.log("DashboardPage - role:", role, "userId:", userId)
-  const doctors = useDoctorStore((s) => s.doctors)
-  const fetchDoctors = useDoctorStore((s) => s.fetchDoctors)
+  const selectedCaretaker = useCaretakerStore((s) => s.selectedCaretaker);
 
-  const patients = usePatientStore((s) => s.patients)
-  const fetchPatients = usePatientStore((s) => s.fetchPatients)
+  const [openDialog, setOpenDialog] = useState<
+    "patient" | "doctor" | "caretaker" | null
+  >(null);
 
-  const caretakers = useCaretakerStore((s) => s.caretakers)
-  const fetchCaretakers = useCaretakerStore((s) => s.fetchCaretakers)
+  const [adminTable, setAdminTable] = useState<
+    "doctors" | "patients" | "caretakers"
+  >("doctors");
 
-  // ---------------------------
-  // 🔥 ROLE-BASED DATA FETCHING
-  // ---------------------------
+  const { loggedInUser } = useLoggedInUser();
+  const role = loggedInUser?.role;
+  const userId = loggedInUser?._id;
+
+  const doctors = useDoctorStore((s) => s.doctors);
+  const fetchDoctors = useDoctorStore((s) => s.getAllDoctors);
+
+  const patients = usePatientStore((s) => s.patients);
+  const fetchPatients = usePatientStore((s) => s.fetchPatients);
+
+  const caretakers = useCaretakerStore((s) => s.caretakers);
+  const fetchCaretakers = useCaretakerStore((s) => s.getAllCaretakers);
+console.log("fetchCaretakers:", caretakers);
+  // ----------------------------------------
+  // FETCH DATA BASED ON ROLE
+  // ----------------------------------------
   useEffect(() => {
-    if (!role) return
+    if (!role) return;
 
-    if (role === "admin") {
-      fetchDoctors()
-      fetchPatients()
-      fetchCaretakers()
+    switch (role) {
+      case "admin":
+        fetchDoctors();
+        fetchPatients();
+        fetchCaretakers();
+        break;
+
+      case "doctor":
+      case "caretaker":
+      case "patient":
+        fetchPatients();
+        break;
     }
+  }, [role]);
 
-    if (role === "doctor") {
-      fetchPatients()
-    }
-
-    if (role === "caretaker") {
-      fetchPatients()
-    }
-
-    if (role === "patient") {
-      fetchPatients()
-    }
-  }, [role])
-
-  // --------------------------
-  // 🎯 FILTER DATA BY ROLE
-  // --------------------------
-
-  let displayedPatients = patients
+  // ----------------------------------------
+  // FILTER PATIENT VIEW FOR NON-ADMIN USERS
+  // ----------------------------------------
+  let displayedPatients = patients;
 
   if (role === "doctor") {
-    displayedPatients = patients.filter((p) => {
-      const doc = p.assignedDoctor
-      if (!doc) return false
-      if (typeof doc === "string") return doc === userId
-      return doc?._id === userId
-    })
+    displayedPatients = patients.filter((p) =>
+      typeof p.assignedDoctor === "string"
+        ? p.assignedDoctor === userId
+        : p.assignedDoctor?._id === userId
+    );
   }
 
   if (role === "caretaker") {
-    displayedPatients = patients.filter((p) => {
-      const c = p.assignedCaretaker
-      if (!c) return false
-      if (typeof c === "string") return c === userId
-      return c?._id === userId
-    })
+    displayedPatients = patients.filter((p) =>
+      typeof p.assignedCaretaker === "string"
+        ? p.assignedCaretaker === userId
+        : p.assignedCaretaker?._id === userId
+    );
   }
 
   if (role === "patient") {
-    displayedPatients = patients.filter((p) => p._id === userId)
+    displayedPatients = patients.filter((p) => p._id === userId);
   }
 
+  // ----------------------------------------
   return (
     <div className="p-6">
-
-      {/* ---------------- HEADER ---------------- */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-4">
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-gray-800">
+          <h1 className="text-3xl font-bold text-gray-800 tracking-tight">
             {role === "admin" && "Admin Dashboard"}
             {role === "doctor" && "Doctor Dashboard"}
             {role === "caretaker" && "Caretaker Dashboard"}
             {role === "patient" && "Patient Dashboard"}
           </h1>
           <p className="text-sm text-gray-500">
-            Role-based access control — Showing only your assigned data.
+            Your role determines what data you can access.
           </p>
         </div>
 
+        {/* ADMIN ACTION BUTTONS */}
         {role === "admin" && (
           <div className="flex gap-3">
-            <Button className="bg-teal-600 text-white"
+            <Button
+              className="bg-teal-600"
               onClick={() => setOpenDialog("doctor")}
             >
               + Add Doctor
             </Button>
-            <Button className="bg-blue-600 text-white"
+
+            <Button
+              className="bg-blue-600"
               onClick={() => setOpenDialog("patient")}
             >
               + Add Patient
             </Button>
-            <Button className="bg-rose-600 text-white"
+
+            <Button
+              className="bg-rose-600"
               onClick={() => setOpenDialog("caretaker")}
             >
               + Add Caretaker
@@ -125,56 +139,94 @@ console.log("DashboardPage - role:", role, "userId:", userId)
         )}
       </div>
 
-      {/* ---------------- TABLES ---------------- */}
-
-      {/* ADMIN SHOWS ALL DOCTORS */}
+      {/* ADMIN TABS */}
       {role === "admin" && (
-        <div className="mb-8">
-          <DataTable
-            title="Doctors"
-            columns={doctorColumns}
-            data={doctors}
-            rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={(v) => setRowsPerPage(v)}
-          />
-        </div>
+        <Tabs
+          value={adminTable}
+          onValueChange={(v: any) => setAdminTable(v)}
+          className="mb-10"
+        >
+          <TabsList className="w-fit bg-gray-100 rounded-lg p-1 shadow-sm">
+            <TabsTrigger value="doctors" className="px-5">
+              Doctors
+            </TabsTrigger>
+            <TabsTrigger value="patients" className="px-5">
+              Patients
+            </TabsTrigger>
+            <TabsTrigger value="caretakers" className="px-5">
+              Caretakers
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="doctors">
+            <DataTable
+              title="Doctors"
+              columns={doctorColumns}
+              data={doctors}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={setRowsPerPage}
+            />
+          </TabsContent>
+
+          <TabsContent value="patients">
+            <DataTable
+              title="Patients"
+              columns={patientColumns}
+              data={patients}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={setRowsPerPage}
+            />
+          </TabsContent>
+
+          <TabsContent value="caretakers">
+            <DataTable
+              title="Caretakers"
+                columns={caretakerColumns(setIsViewOpen, setIsDeleteOpen)}
+              data={caretakers}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={setRowsPerPage}
+            />
+          </TabsContent>
+        </Tabs>
       )}
 
-      {/* PATIENT TABLE FOR ALL ROLES */}
-      <div className="mb-8">
+      {/* NON-ADMIN USERS */}
+      {role !== "admin" && (
         <DataTable
           title="Patients"
           columns={patientColumns}
           data={displayedPatients}
           rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={(v) => setRowsPerPage(v)}
+          onRowsPerPageChange={setRowsPerPage}
         />
-      </div>
-
-      {/* ADMIN ONLY — CARETAKERS */}
-      {role === "admin" && (
-        <div className="mb-8">
-          <DataTable
-            title="Caretakers"
-            columns={caretakerColumns}
-            data={caretakers}
-            rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={(v) => setRowsPerPage(v)}
-          />
-        </div>
       )}
 
-      {/* ---------------- DIALOGS ---------------- */}
-      
+      {/* DIALOGS */}
       {openDialog === "patient" && (
-        <AddPatientDialog open={true} onOpenChange={() => setOpenDialog(null)} />
+        <AddPatientDialog open onOpenChange={() => setOpenDialog(null)} />
       )}
+
       {openDialog === "doctor" && (
-        <AddDoctorDialog open={true} onOpenChange={() => setOpenDialog(null)} />
+        <AddDoctorDialog open onOpenChange={() => setOpenDialog(null)} />
       )}
+
       {openDialog === "caretaker" && (
-        <AddCaretakerDialog open={true} onOpenChange={() => setOpenDialog(null)} />
+        <AddCaretakerDialog open onOpenChange={() => setOpenDialog(null)} />
       )}
+
+      {/* VIEW CARETAKER MODAL */}
+      <ViewCaretakerModal
+        isOpen={isViewOpen}
+        onClose={() => setIsViewOpen(false)}
+        caretaker={selectedCaretaker}
+      />
+
+      {/* DELETE CARETAKER MODAL */}
+      <DeleteCaretakerModal
+        isOpen={isDeleteOpen}
+        onClose={() => setIsDeleteOpen(false)}
+        caretaker={selectedCaretaker}
+      />
     </div>
-  )
+  );
 }

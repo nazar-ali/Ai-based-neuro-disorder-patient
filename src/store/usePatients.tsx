@@ -11,7 +11,7 @@ interface PatientStore {
   error: string | null;
 
   fetchPatients: () => Promise<void>;
-addPatient: (payload: PatientPayload) => Promise<Patient | null>;
+  addPatient: (payload: PatientPayload) => Promise<Patient | null>;
   setPatients: (patients: Patient[]) => void;
   setLoading: (v: boolean) => void;
   setError: (e: string | null) => void;
@@ -63,6 +63,7 @@ export const usePatientStore = create<PatientStore>()(
         try {
           set({ loading: true });
           const res = await createPatientAPI(payload);
+          console.log("createPatientAPI response:", res);
           // assume res.data.data is created patient or adapt
           const newPatient = res?.data?.data ?? res?.data ?? res;
           await get().fetchPatients();

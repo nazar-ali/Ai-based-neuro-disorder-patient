@@ -1,75 +1,151 @@
-// src/store/useCaretakerStore.ts
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import { fetchCaretakersAPI, createCaretakerAPI } from "@/lib/api";
+"use client";
+
+import { create, StateCreator } from "zustand";
+import api from "@/lib/axiosClient";
 import { Caretaker } from "@/types/careTaker";
+
+// ==================================================
+// 📌 Types
+// ==================================================
 
 
 
 interface CaretakerStore {
   caretakers: Caretaker[];
+  caretaker: Caretaker | null;
+  selectedCaretaker: Caretaker | null;
   loading: boolean;
-  error: string | null;
+  error?: string | null;
 
-  fetchCaretakers: () => Promise<void>;
-  addCaretaker: (payload: { userId: string } & Partial<Caretaker>) => Promise<Caretaker | null>;
-  setCaretakers: (c: Caretaker[]) => void;
-  setLoading: (v: boolean) => void;
-  setError: (e: string | null) => void;
+  addCaretaker: (
+    formData: Caretaker
+  ) => Promise<{ success: boolean; message?: string }>;
+
+  viewCaretaker: (
+    userId: string
+  ) => Promise<{ success: boolean; message?: string }>;
+
+  getAllCaretakers: () => Promise<void>;
+
+  deleteCaretaker: (
+    id: string
+  ) => Promise<{ success: boolean; message?: string }>;
+
+  // ⭐ ADDED THIS IN INTERFACE
+  setSelectedCaretaker: (caretaker: Caretaker | null) => void;
 }
 
-export const useCaretakerStore = create<CaretakerStore>()(
-  persist(
-    (set, get) => ({
-      caretakers: [],
-      loading: false,
-      error: null,
+// ==================================================
+// 📌 Store Creator
+// ==================================================
 
-      setCaretakers: (c) => set({ caretakers: c }),
-      setLoading: (v) => set({ loading: v }),
-      setError: (e) => set({ error: e }),
+const caretakerStore: StateCreator<CaretakerStore> = (set, get) => ({
+  caretakers: [],
+  caretaker: null,
+  selectedCaretaker: null,
+  loading: false,
+  error: null,
 
-      fetchCaretakers: async () => {
-        set({ loading: true, error: null });
-        try {
-          const res = await fetchCaretakersAPI();
-          const payload = (res?.data?.data ?? res?.data ?? res) as any;
-          const normalized = (payload || []).map((c: any) => {
-            const copy = { ...c };
-            if (Array.isArray(copy.assignedPatients)) {
-              copy.assignedPatients = copy.assignedPatients.map((p: any) =>
-                typeof p === "object" ? { _id: p._id, fullName: p.fullName } : p
-              );
-            }
-            return copy;
-          });
-          set({ caretakers: normalized, loading: false });
-        } catch (err) {
-          const message = err instanceof Error ? err.message : "Unknown error";
-          set({ error: message, loading: false });
-          console.error("❌ fetchCaretakers error:", message);
-        }
-      },
+  // ==================================================
+  // ➤ Add caretaker
+  // ==================================================
+  addCaretaker: async (formData) => {
+    set({ loading: true, error: null });
 
-      async addCaretaker(payload: { userId: string } & Partial<Caretaker>) {
-        try {
-          set({ loading: true });
-          const res = await createCaretakerAPI(payload);
-          const created = res?.data?.data ?? res?.data ?? res;
-          await get().fetchCaretakers();
-          set({ loading: false });
-          return created;
-        } catch (err) {
-          const message = err instanceof Error ? err.message : "Unknown error";
-          set({ error: message, loading: false });
-          console.error("❌ addCaretaker error:", message);
-          return null;
-        }
-      },
-    }),
-    {
-      name: "caretaker-store",
-      version: 1,
+    try {
+      const res = await api.post("/caretaker", formData);
+      console.log("Add Caretaker Response:", res.caretaker);
+    
+
+      if (res.success) {
+        set((state) => ({
+          caretakers: [...state.caretakers, res.caretaker],
+          loading: false,
+        }));
+
+        return { success: true, message: res.message };
+      }
+
+      set({ loading: false, error: res.message });
+      return { success: false, message: res.message };
+    } catch (err: any) {
+      set({ loading: false, error: err.message });
+      return { success: false, message: err.message };
     }
-  )
-);
+  },
+
+  // ==================================================
+  // ⭐ Set Selected Caretaker (for modals)
+  // ==================================================
+  setSelectedCaretaker: (caretaker) => set({ selectedCaretaker: caretaker }),
+
+  // ==================================================
+  // ➤ View caretaker (GET one)
+  // ==================================================
+  viewCaretaker: async (id: string) => {
+    set({ loading: true, error: null });
+
+    try {
+      const res = await api.get(`/caretaker/${id}`);
+    
+
+      if (!res.success) {
+        return { success: false, message: res.message };
+      }
+
+      set({ selectedCaretaker: res.caretaker });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  // ==================================================
+  // ➤ Get ALL caretakers
+  // ==================================================
+  getAllCaretakers: async () => {
+    set({ loading: true, error: null });
+
+    try {
+      const res = await api.get("/caretaker");
+
+      if (res.success) {
+        set({ caretakers: res.caretakers });
+      }
+    } catch (err: any) {
+      set({ error: err.message });
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  // ==================================================
+  // ➤ Delete caretaker
+  // ==================================================
+  deleteCaretaker: async (id: string) => {
+    try {
+      const res = await api.delete(`/caretaker/${id}`);
+  
+
+      if (!res.success) {
+        return { success: false, message: res.message };
+      }
+
+      set({
+        caretakers: get().caretakers.filter((c) => c._id !== id),
+      });
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
+  },
+});
+
+// ==================================================
+// 📌 Export Store
+// ==================================================
+
+export const useCaretakerStore = create<CaretakerStore>()(caretakerStore);
