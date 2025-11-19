@@ -1,361 +1,299 @@
 "use client"
 
-import React, { useState } from "react"
+import React from "react"
+import { useForm, useFieldArray } from "react-hook-form"
+import { z } from "zod"
+import { zodResolver } from "@hookform/resolvers/zod"
+
 import { Button } from "@/components/ui/button"
-import { Save, PlusCircle } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  DialogDescription,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
+
+import { Plus, Save, Trash2 } from "lucide-react"
 import { createPatientAPI } from "@/lib/api"
+import { PatientSchema, PatientFormType} from "@/components/schemas/adminSchema/addPatientFormSchema"
+
+
 
 interface AddPatientDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-export default function AddPatientDialog({open, onOpenChange}: AddPatientDialogProps) {
-  const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState("")
+/* ------------------------------------------------------ */
 
-  type EmergencyContact = { name: string; relation: string; contact: string; isPrimary?: boolean }
-
-  const [form, setForm] = useState({
-    medicalRecordsId: "",
-    fullName: "",
-    email: "",
-    // demographics
-    age: "",
-    sex: "",
-    ethnicity: "",
-    weight: "",
-    height: "",
-    // clinical
-    medicalHistory: "",
-    allergies: "",
-    // relations
-    contact: "",
-    assignedDoctor: "",
-    assignedCaretaker: "",
-    // care team (comma-separated ids or names)
-    careTeam_doctors: "",
-    careTeam_caretakers: "",
-    consent_dataSharing: false,
+export default function AddPatientDialog({ open, onOpenChange }: AddPatientDialogProps) {
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    formState: { errors, isSubmitting }
+  } = useForm<PatientFormType>({
+    resolver: zodResolver(PatientSchema),
+    defaultValues: {
+      medicalRecordsId: "",
+      fullName: "",
+      age: "",
+      sex: "",
+      ethnicity: "",
+      weight: "",
+      height: "",
+      medicalHistory: "",
+      allergies: "",
+      contact: "",
+      assignedDoctor: "",
+      assignedCaretaker: "",
+      careTeam_doctors: "",
+      careTeam_caretakers: "",
+      consent_dataSharing: false,
+      emergencyContacts: [{ name: "", relation: "", contact: "" }],
+    }
   })
 
-  const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([])
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "emergencyContacts"
+  })
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const target = e.target as HTMLInputElement
-    const { name, value, type } = target
-    if (type === "checkbox") {
-      setForm((s) => ({ ...s, [name]: (target as HTMLInputElement).checked }))
-    } else {
-      setForm((s) => ({ ...s, [name]: value }))
+  const onSubmit = async (data: PatientFormType) => {
+    const payload = {
+      ...data,
+      medicalHistory: data.medicalHistory
+        ? data.medicalHistory.split("\n").map(s => s.trim())
+        : [],
+      allergies: data.allergies
+        ? data.allergies.split(",").map(s => s.trim())
+        : [],
+      careTeam_doctors: data.careTeam_doctors
+        ? data.careTeam_doctors.split(",").map(s => s.trim())
+        : [],
+      careTeam_caretakers: data.careTeam_caretakers
+        ? data.careTeam_caretakers.split(",").map(s => s.trim())
+        : [],
     }
-  }
 
-  const handleSave = async () => {
-    setLoading(true)
-    setMessage("")
-
-    try {
-      // Transform form into shape expected by API/schema
-      const payload: any = {
-        fullName: form.fullName,
-        medicalRecordsId: form.medicalRecordsId,
-        age: form.age,
-        sex: form.sex,
-        ethnicity: form.ethnicity,
-        weight: form.weight,
-        height: form.height,
-        medicalHistory: form.medicalHistory ? form.medicalHistory.split("\n").map(s => s.trim()).filter(Boolean) : [],
-        allergies: form.allergies ? form.allergies.split(",").map(s => s.trim()).filter(Boolean) : [],
-        emergencyContacts: emergencyContacts.map(c => ({ ...c })),
-        consent_dataSharing: !!form.consent_dataSharing,
-        careTeam_doctors: form.careTeam_doctors ? form.careTeam_doctors.split(",").map(s => s.trim()).filter(Boolean) : [],
-        careTeam_caretakers: form.careTeam_caretakers ? form.careTeam_caretakers.split(",").map(s => s.trim()).filter(Boolean) : [],
-        contact: form.contact,
-        assignedDoctor: form.assignedDoctor,
-        assignedCaretaker: form.assignedCaretaker,
-      }
-
-      const data = await createPatientAPI(payload)
-
-      if (data) {
-        setMessage("✅ Patient added successfully!")
-        setTimeout(() => onOpenChange(false), 1500)
-        setForm({
-          medicalRecordsId: "",
-          fullName: "",
-          email: "",
-          age: "",
-          sex: "",
-          ethnicity: "",
-          weight: "",
-          height: "",
-          medicalHistory: "",
-          allergies: "",
-          contact: "",
-          assignedDoctor: "",
-          assignedCaretaker: "",
-          careTeam_doctors: "",
-          careTeam_caretakers: "",
-          consent_dataSharing: false,
-        })
-        setEmergencyContacts([])
-      }
-    } catch (error: any) {
-      console.error("❌ Error adding patient:", error)
-      setMessage(`❌ Error: ${error.message || "Unknown error"}`)
-    } finally {
-      setLoading(false)
-    }
+    await createPatientAPI(payload)
+    reset()
+    onOpenChange(false)
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="fixed sm:max-w-[700px] p-6 rounded-2xl shadow-lg border border-gray-200 bg-white">
-         <div className="p-2 overflow-auto max-h-[80vh]">
-        <DialogHeader>
-         <DialogTitle className="text-3xl font-extrabold flex items-center gap-3 text-gray-900 dark:text-gray-50">Add New Patient</DialogTitle>
-          <DialogDescription  className="text-sm flex items-center gap-3 text-gray-900 dark:text-gray-50">Fill out all patient details below.</DialogDescription>
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto rounded-xl bg-white p-6">
+
+        
+        <DialogHeader className="bg-white pb-4 border-b">
+          <DialogTitle className="text-2xl font-bold">Add New Patient</DialogTitle>
+          <DialogDescription>Fill out the required information.</DialogDescription>
         </DialogHeader>
 
-        {message && (
-          <p className="text-sm text-center font-medium text-gray-600">{message}</p>
-        )}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 mt-4">
 
-        {/* Form Fields */}
-        <form className="space-y-3 mt-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Medical Record ID</label>
-            <Input
-              type="text"
-              name="medicalRecordsId"
-              value={form.medicalRecordsId}
-              onChange={handleChange}
-              className="w-full border rounded-md px-3 py-2"
-              placeholder="e.g. MR-12345"
-            />
-          </div>
+          {/* SECTION: Patient Info */}
+          <div className="bg-gray-50 p-4 rounded-xl shadow-sm">
+            <Label className="font-semibold text-lg">Patient Info</Label>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Full Name</label>
-            <Input
-              type="text"
-              name="fullName"
-              value={form.fullName}
-              onChange={handleChange}
-              className="w-full border rounded-md px-3 py-2"
-              placeholder="John Doe"
-            />
-          </div>
+            <div className="grid grid-cols-2 gap-4 mt-3">
+              <div>
+                <Label>Medical Record ID</Label>
+                <Input {...register("medicalRecordsId")} className="mt-2" />
+                {errors.medicalRecordsId && (
+                  <p className="text-red-500 text-sm">{errors.medicalRecordsId.message}</p>
+                )}
+              </div>
 
-          {/* <div>
-            <label className="block text-sm font-medium text-gray-700">Email</label>
-            <Input
-              type="email"
-              name="email"
-              value={form.email}
-              onChange={handleChange}
-              className="w-full border rounded-md px-3 py-2"
-              placeholder="john@example.com"
-            />
-          </div> */}
+              <div>
+                <Label>Full Name</Label>
+                <Input {...register("fullName")} className="mt-2" />
+                {errors.fullName && (
+                  <p className="text-red-500 text-sm">{errors.fullName.message}</p>
+                )}
+              </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Age</label>
-              <Input
-                type="number"
-                name="age"
-                value={form.age}
-                onChange={handleChange}
-                className="w-full border rounded-md px-3 py-2"
-                placeholder="25"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Sex</label>
-              <Input
-                type="text"
-                name="sex"
-                value={form.sex}
-                onChange={handleChange}
-                className="w-full border rounded-md px-3 py-2"
-                placeholder="Male / Female"
-              />
+              <div>
+                <Label>Contact</Label>
+                <Input {...register("contact")} className="mt-2" />
+                {errors.contact && (
+                  <p className="text-red-500 text-sm">{errors.contact.message}</p>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Ethnicity</label>
-              <Input
-                type="text"
-                name="ethnicity"
-                value={form.ethnicity}
-                onChange={handleChange}
-                className="w-full border rounded-md px-3 py-2"
-                placeholder="Asian"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Contact</label>
-              <Input
-                type="text"
-                name="contact"
-                value={form.contact}
-                onChange={handleChange}
-                className="w-full border rounded-md px-3 py-2"
-                placeholder="03001234567"
-              />
-            </div>
-          </div>
+          {/* SECTION: Demographics */}
+          <div className="bg-gray-50 p-4 rounded-xl shadow-sm">
+            <Label className="font-semibold text-lg">Demographics</Label>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Weight (kg)</label>
-              <Input
-                type="number"
-                name="weight"
-                value={form.weight}
-                onChange={handleChange}
-                className="w-full border rounded-md px-3 py-2"
-                placeholder="60"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Height (cm)</label>
-              <Input
-                type="number"
-                name="height"
-                value={form.height}
-                onChange={handleChange}
-                className="w-full border rounded-md px-3 py-2"
-                placeholder="170"
-              />
+            <div className="grid grid-cols-2 gap-4 mt-3">
+              <div>
+                <Label>Age</Label>
+                <Input type="number" {...register("age")} className="mt-2" />
+              </div>
+
+              <div>
+                <Label>Sex</Label>
+                <Input {...register("sex")} className="mt-2" />
+              </div>
+
+              <div>
+                <Label>Ethnicity</Label>
+                <Input {...register("ethnicity")} className="mt-2" />
+              </div>
+
+              <div>
+                <Label>Height (cm)</Label>
+                <Input type="number" {...register("height")} className="mt-2" />
+              </div>
+
+              <div>
+                <Label>Weight (kg)</Label>
+                <Input type="number" {...register("weight")} className="mt-2" />
+              </div>
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Assigned Doctor</label>
-            <Input
-              type="text"
-              name="assignedDoctor"
-              value={form.assignedDoctor}
-              onChange={handleChange}
-              className="w-full border rounded-md px-3 py-2"
-              placeholder="Dr. Ahmed or doctorId"
-            />
+          {/* SECTION: Medical Details */}
+          <div className="bg-gray-50 p-4 rounded-xl shadow-sm">
+            <Label className="font-semibold text-lg">Medical Details</Label>
+
+            <div className="mt-3">
+              <Label>Allergies (comma separated)</Label>
+              <Input {...register("allergies")} className="mt-2" />
+            </div>
+
+            <div className="mt-3">
+              <Label>Medical History (one per line)</Label>
+              <Textarea {...register("medicalHistory")} className="mt-2" />
+            </div>
           </div>
 
-          {/* ✅ New Field */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Assigned By Caretaker</label>
-            <Input
-              type="text"
-              name="assignedCaretaker"
-              value={form.assignedCaretaker}
-              onChange={handleChange}
-              className="w-full border rounded-md px-3 py-2"
-              placeholder="Caretaker ID or Name"
-            />
-          </div>
+          {/* SECTION: Emergency Contacts */}
+          <div className="bg-gray-50 p-4 rounded-xl shadow-sm">
+            <Label className="font-semibold text-lg">Emergency Contacts</Label>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Care Team — Doctors (comma separated IDs)</label>
-            <Input
-              type="text"
-              name="careTeam_doctors"
-              value={form.careTeam_doctors}
-              onChange={handleChange}
-              className="w-full border rounded-md px-3 py-2"
-              placeholder="docId1,docId2"
-            />
-          </div>
+            {fields.map((field, idx) => (
+              <div
+                key={field.id}
+                className="grid grid-cols-2 gap-3 mt-4 border p-3 rounded-lg bg-white"
+              >
+                <div>
+                  <Label>Name</Label>
+                  <Input
+                    {...register(`emergencyContacts.${idx}.name`)}
+                    className="mt-1"
+                  />
+                  {errors.emergencyContacts?.[idx]?.name && (
+                    <p className="text-red-500 text-sm">
+                      {errors.emergencyContacts[idx]?.name?.message}
+                    </p>
+                  )}
+                </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Care Team — Caretakers (comma separated IDs)</label>
-            <Input
-              type="text"
-              name="careTeam_caretakers"
-              value={form.careTeam_caretakers}
-              onChange={handleChange}
-              className="w-full border rounded-md px-3 py-2"
-              placeholder="caretakerId1,caretakerId2"
-            />
-          </div>
+                <div>
+                  <Label>Relation</Label>
+                  <Input
+                    {...register(`emergencyContacts.${idx}.relation`)}
+                    className="mt-1"
+                  />
+                  {errors.emergencyContacts?.[idx]?.relation && (
+                    <p className="text-red-500 text-sm">
+                      {errors.emergencyContacts[idx]?.relation?.message}
+                    </p>
+                  )}
+                </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Medical History (one per line)</label>
-            <Textarea
-              name="medicalHistory"
-              value={form.medicalHistory}
-              onChange={handleChange}
-              className="w-full border rounded-md px-3 py-2"
-              placeholder="Stroke in 2019\nHypertension"
-            />
-          </div>
+                <div className="col-span-2">
+                  <Label>Contact Number</Label>
+                  <Input
+                    {...register(`emergencyContacts.${idx}.contact`)}
+                    className="mt-1"
+                  />
+                  {errors.emergencyContacts?.[idx]?.contact && (
+                    <p className="text-red-500 text-sm">
+                      {errors.emergencyContacts[idx]?.contact?.message}
+                    </p>
+                  )}
+                </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Allergies (comma separated)</label>
-            <Input
-              type="text"
-              name="allergies"
-              value={form.allergies}
-              onChange={handleChange}
-              className="w-full border rounded-md px-3 py-2"
-              placeholder="Penicillin,Peanuts"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">Emergency Contacts</label>
-            {emergencyContacts.map((c, idx) => (
-              <div key={idx} className="grid grid-cols-4 gap-2 items-end">
-                <Input placeholder="Name" value={c.name} onChange={(e)=>{
-                  const v = e.target.value; setEmergencyContacts(prev=>{ const copy=[...prev]; copy[idx].name=v; return copy})
-                }} />
-                <Input placeholder="Relation" value={c.relation} onChange={(e)=>{ const v=e.target.value; setEmergencyContacts(prev=>{ const copy=[...prev]; copy[idx].relation=v; return copy}) }} />
-                <Input placeholder="Contact" value={c.contact} onChange={(e)=>{ const v=e.target.value; setEmergencyContacts(prev=>{ const copy=[...prev]; copy[idx].contact=v; return copy}) }} />
-                <div className="flex gap-2">
-                  <Button type="button" onClick={()=>setEmergencyContacts(prev=>prev.filter((_,i)=>i!==idx))}>Remove</Button>
+                <div className="col-span-2 flex items-center justify-end mt-2">
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    onClick={() => remove(idx)}
+                    className="h-9 w-9 bg-red-100 text-red-600"
+                  >
+                    <Trash2 size={18} />
+                  </Button>
                 </div>
               </div>
             ))}
-            <div>
-              <Button type="button" variant="ghost" onClick={()=>setEmergencyContacts(prev=>[...prev,{name:'',relation:'',contact:'',isPrimary:false}])}>
-                <PlusCircle className="mr-2" /> Add contact
-              </Button>
+
+            <Button
+              type="button"
+              variant="secondary"
+              className="mt-4 w-full bg-gray-400"
+              onClick={() =>
+                append({ name: "", relation: "", contact: "" })
+              }
+            >
+              <Plus size={18} className="mr-1" /> Add New Emergency
+            </Button>
+          </div>
+
+          {/* SECTION: Assignments */}
+          <div className="bg-gray-50 p-4 rounded-xl shadow-sm">
+            <Label className="font-semibold text-lg">Assignments</Label>
+
+            <div className="grid grid-cols-2 gap-4 mt-3">
+              <div>
+                <Label>Assigned Doctor</Label>
+                <Input {...register("assignedDoctor")} className="mt-2" />
+              </div>
+
+              <div>
+                <Label>Assigned Caretaker</Label>
+                <Input {...register("assignedCaretaker")} className="mt-2" />
+              </div>
+
+              <div>
+                <Label>Care Team Doctors</Label>
+                <Input {...register("careTeam_doctors")} className="mt-2" />
+              </div>
+
+              <div>
+                <Label>Care Team Caretakers</Label>
+                <Input {...register("careTeam_caretakers")} className="mt-2" />
+              </div>
             </div>
           </div>
 
+          {/* Consent */}
           <div className="flex items-center gap-2">
-            <Checkbox name="consent_dataSharing" checked={!!form.consent_dataSharing} onChange={(e)=> setForm(s=>({...s, consent_dataSharing: (e.target as HTMLInputElement).checked}))} />
-            <label className="text-sm">Consent to share data</label>
+            <Checkbox {...register("consent_dataSharing")} />
+            <Label>Consent to share data</Label>
           </div>
 
-          <div className="flex justify-end pt-2">
-            <Button
-              type="button"
-              onClick={handleSave}
-              disabled={loading}
-              className="bg-teal-600 hover:bg-teal-700 text-white font-medium shadow-sm transition-all"
-            >
-              {loading ? "Saving..." : <><Save className="h-4 w-4 mr-2" /> Save</>}
-            </Button>
-          </div>
+          {/* Submit */}
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full py-3 text-lg font-semibold mt-4 bg-blue-600 hover:bg-blue-700"
+          >
+            {isSubmitting ? "Saving..." : (<><Save size={18} className="mr-2" /> Save Patient</>)}
+          </Button>
+
         </form>
-        </div>
       </DialogContent>
     </Dialog>
   )

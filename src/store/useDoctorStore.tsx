@@ -2,31 +2,13 @@
 
 import { create, StateCreator } from "zustand";
 import api from "@/lib/axiosClient";
+import { Doctor } from "@/types/doctor";
 
 // ==================================================
 // 📌 Types
 // ==================================================
 
-export interface DoctorSchedule {
-  day: string;
-  start: string;
-  end: string;
-}
 
-export interface Doctor {
-  // _id: string;
-  userId: string;
-
-  fullName?: string;
-  email?: string;
-
-  specialization?: string;
-  experience?: number;
-
-  assignedPatients: string[];
-
-  schedule: DoctorSchedule[];
-}
 
 interface DoctorStore {
   doctors: Doctor[];
@@ -70,11 +52,11 @@ const doctorStore: StateCreator<DoctorStore> = (set, get) => ({
     set({ loading: true, error: null });
 
     try {
-      const res = await api.post("/doctor", formData);
+      const res = await api.post("/doctors", formData);
 
       if (res.success) {
         set((state) => ({
-          doctors: [...state.doctors, res.doctor],
+          doctors: [...state.doctors, res.data],
           loading: false,
         }));
 
@@ -101,7 +83,7 @@ const doctorStore: StateCreator<DoctorStore> = (set, get) => ({
     set({ loading: true, error: null });
 
     try {
-      const res = await api.get(`/doctor/${id}`);
+      const res = await api.get(`/doctors/${id}`);
 
       if (!res.success) {
         return { success: false, message: res.message };
@@ -126,7 +108,7 @@ const doctorStore: StateCreator<DoctorStore> = (set, get) => ({
       const res = await api.get("/doctors");
         console.log("getAllDoctors res:", res);
       if (res.success) {
-        set({ doctors: res.doctors });
+        set({ doctors: res.data });
       }
     } catch (err: any) {
       set({ error: err.message });
@@ -140,7 +122,7 @@ const doctorStore: StateCreator<DoctorStore> = (set, get) => ({
   // ==================================================
   deleteDoctor: async (id: string) => {
     try {
-      const res = await api.delete(`/doctor/${id}`);
+      const res = await api.delete(`/doctors/${id}`);
 
       if (!res.success) {
         return { success: false, message: res.message };

@@ -14,7 +14,7 @@ interface CaretakerStore {
   caretakers: Caretaker[];
   caretaker: Caretaker | null;
   selectedCaretaker: Caretaker | null;
-  loading: boolean;
+  caretakerLoading: boolean;
   error?: string | null;
 
   addCaretaker: (
@@ -43,14 +43,14 @@ const caretakerStore: StateCreator<CaretakerStore> = (set, get) => ({
   caretakers: [],
   caretaker: null,
   selectedCaretaker: null,
-  loading: false,
+  caretakerLoading: false,
   error: null,
 
   // ==================================================
   // ➤ Add caretaker
   // ==================================================
   addCaretaker: async (formData) => {
-    set({ loading: true, error: null });
+    set({ caretakerLoading: true, error: null });
 
     try {
       const res = await api.post("/caretaker", formData);
@@ -60,16 +60,16 @@ const caretakerStore: StateCreator<CaretakerStore> = (set, get) => ({
       if (res.success) {
         set((state) => ({
           caretakers: [...state.caretakers, res.caretaker],
-          loading: false,
+          caretakerLoading: false,
         }));
 
         return { success: true, message: res.message };
       }
 
-      set({ loading: false, error: res.message });
+      set({ caretakerLoading: false, error: res.message });
       return { success: false, message: res.message };
     } catch (err: any) {
-      set({ loading: false, error: err.message });
+      set({ caretakerLoading: false, error: err.message });
       return { success: false, message: err.message };
     }
   },
@@ -83,7 +83,7 @@ const caretakerStore: StateCreator<CaretakerStore> = (set, get) => ({
   // ➤ View caretaker (GET one)
   // ==================================================
   viewCaretaker: async (id: string) => {
-    set({ loading: true, error: null });
+    set({ caretakerLoading: true, error: null });
 
     try {
       const res = await api.get(`/caretaker/${id}`);
@@ -98,7 +98,7 @@ const caretakerStore: StateCreator<CaretakerStore> = (set, get) => ({
     } catch (err: any) {
       return { success: false, message: err.message };
     } finally {
-      set({ loading: false });
+      set({ caretakerLoading: false });
     }
   },
 
@@ -106,7 +106,7 @@ const caretakerStore: StateCreator<CaretakerStore> = (set, get) => ({
   // ➤ Get ALL caretakers
   // ==================================================
   getAllCaretakers: async () => {
-    set({ loading: true, error: null });
+    set({ caretakerLoading: true, error: null });
 
     try {
       const res = await api.get("/caretaker");
@@ -117,7 +117,7 @@ const caretakerStore: StateCreator<CaretakerStore> = (set, get) => ({
     } catch (err: any) {
       set({ error: err.message });
     } finally {
-      set({ loading: false });
+      set({ caretakerLoading: false });
     }
   },
 

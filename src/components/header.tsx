@@ -23,7 +23,7 @@ const { open } = useSidebar()
   const initial = loggedInUser?.name?.charAt(0)?.toUpperCase?.() || "U"
 
   return (
-    <header className="sticky top-0 z-50 border-b border-gray-200     bg-background/70 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 shadow-xs transition-all duration-300">
+    <header className="sticky top-0 z-50 border-b border-gray-200   bg-background/70 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 shadow-xs transition-all duration-300">
       <div className={`${open ? 'h-18' : 'h-16'} flex   items-center justify-between px-5`}>
         {/* Left: Sidebar Trigger + Welcome */}
         <div className="flex items-center gap-4">

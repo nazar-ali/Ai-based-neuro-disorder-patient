@@ -1,6 +1,6 @@
 import dbConnect from "@/lib/mongoose";
 import User from "@/models/User";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 
 export async function POST(req) {

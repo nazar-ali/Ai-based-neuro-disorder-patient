@@ -96,7 +96,7 @@ const navItems =
   return (
     <div
       className={cn(
-        "transition-all duration-300 max-h-screen flex flex-col border-r border-gray-200    shadow-lg bg-transparent",
+        "transition-all duration-300  flex flex-col border-r border-gray-200  shadow-lg bg-transparent",
         open ? "w-48" : "w-20"
       )}
     >

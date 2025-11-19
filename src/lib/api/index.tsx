@@ -1,9 +1,9 @@
 import { SignUpFormData } from '@/components/schemas/signupSchema';
 import api from '@/lib/axiosClient';
 import { RegisterUserPayload } from '@/types/user';
-import { Doctor } from '@/store/useDoctorStore';
 import { PatientPayload } from '@/types/patientFormtypes';
 import { CreateDoctorPayload } from '@/types/doctor';
+import { Doctor } from '../types';
 
 // ============================================
 // AUTH APIs

@@ -35,7 +35,7 @@ export async function POST(req) {
 
     // Compare raw password with stored hashed password
     const isMatch = await comparePassword(password,  user.password);
-console.log("show password",password,user.password);
+
     if (!isMatch) {
       console.log("Password mismatch for user:", email);
       return NextResponse.json(

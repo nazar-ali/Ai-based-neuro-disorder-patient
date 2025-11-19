@@ -7,13 +7,14 @@ export interface EmergencyContact {
   isPrimary: boolean;
 }
 
+
 export interface Demographics {
-  age: string;
+  age: number;
   sex: string;
-  ethnicity: string;
-  weight: string;
-  height: string;
+  height: number;
+  weight: number;
 }
+
 
 export interface PatientForm {
   medicalRecordsId: string;
@@ -22,7 +23,13 @@ export interface PatientForm {
   demographics: Demographics;
   careTeam_doctors: string[];
   careTeam_caretakers: string[];
+  allergies: string[];
+  medicalHistory: string[];
+  assignedDoctor?: string;
+  assignedCaretaker?: string | null;
+  fullName: string;
 }
+
 
 export interface PatientInfoProps {
   form: PatientForm;
@@ -34,54 +41,105 @@ export interface PatientInfoProps {
 export interface PatientPayload {
   fullName: string;
   medicalRecordsId?: string;
-  age?: string;
-  sex?: string;
-  ethnicity?: string;
-  weight?: string;
-  height?: string;
+
+  // demographics
+  demographics?: {
+    age: number;
+    sex: string;
+    height: number;
+    weight: number;
+  };
+
   medicalHistory?: string[];
   allergies?: string[];
-  contact?: string;
+  
   assignedDoctor?: string;
-  assignedCaretaker?: string;
+  assignedCaretaker?: string | null;
+
   careTeam_doctors?: string[];
   careTeam_caretakers?: string[];
+
+  emergencyContacts?: {
+    name: string;
+    relation: string;
+    contact: string;
+    isPrimary?: boolean;
+  }[];
+
+  consent_dataSharing?: boolean;
+
+  userId?: string;
+}
+
+export interface Patient {
+  _id: string;
+  fullName: string;
+
+  medicalRecordsId: string;
+
+  demographics: {
+    age: number;
+    sex: string;
+    height: number;
+    weight: number;
+  };
+
+  medicalHistory: string[];
+  allergies: string[];
+
+  assignedDoctor: string | null;
+  assignedCaretaker: string | null;
+
+  careTeam_doctors: string[];
+  careTeam_caretakers: string[];
+
+  emergencyContacts: EmergencyContact[];
+
+  consent_dataSharing: boolean;
+
+  createdAt: string;
+  updatedAt: string;
+}
+
+// export interface PatientRow {
+//   _id: string;
+//   fullName?: string;
+//   mriRecordId?: string;
+//   assignedDoctor?: {
+//     _id?: string;
+//     fullName?: string;
+//     email?: string;
+//   } | string | null;
+//   assignedCaretaker?: {
+//     _id?: string;
+//     fullName?: string;
+//     email?: string;
+//   } | string | null;
+// }
+
+
+export interface PatientRow {
+  _id: string;
+  fullName: string;
+  medicalRecordsId: string;
+
+  assignedDoctor?: string | { _id: string; fullName?: string } | null;
+  assignedCaretaker?: string | { _id: string; fullName?: string } | null;
+
+  allergies?: string[];
+
   emergencyContacts?: Array<{
     name: string;
     relation: string;
     contact: string;
     isPrimary?: boolean;
   }>;
-  consent_dataSharing?: boolean;
-  userId?: string;
-}
 
-export interface Patient {
-  _id: string;
-  mriRecordId?: string;
-  fullName: string;
-  email?: string;
-  assignedDoctor?: { _id: string; fullName?: string } | string | null;
-  assignedCaretaker?: { _id: string; fullName?: string } | string | null;
-  patientSummary?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  demographics?: {
+    age?: number;
+    sex?: string;
+    height?: number;
+    weight?: number;
+  };
 }
-
-export interface PatientRow {
-  _id: string;
-  fullName?: string;
-  mriRecordId?: string;
-  assignedDoctor?: {
-    _id?: string;
-    fullName?: string;
-    email?: string;
-  } | string | null;
-  assignedCaretaker?: {
-    _id?: string;
-    fullName?: string;
-    email?: string;
-  } | string | null;
-}
-
 

@@ -2,91 +2,97 @@
 
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Doctor } from "@/store/useDoctorStore";
+import { Doctor } from "@/types/doctor";
+import { Trash2, Edit } from "lucide-react";
 
 export const doctorColumns: ColumnDef<Doctor, any>[] = [
   {
-    accessorKey: "userId",
-    header: "User ID",
-    cell: ({ row }) => {
-      // If userId is a string → show it
-      // If it's an object → fallback to doctor's own _id
-      const uid =
-        typeof row.original.userId
-
-      return (
-        <span className="text-xs text-muted-foreground truncate block max-w-[150px]">
-          {uid}
-        </span>
-      );
-    },
+    accessorKey: "_id",
+    header: () => <div className="text-center">ID</div>,
+    cell: ({ row }) => (
+      <div className="text-center text-xs text-muted-foreground truncate max-w-[150px]">
+        {row.original.userId}
+      </div>
+    ),
   },
 
   {
     accessorKey: "fullName",
-    header: "Name",
+    header: () => <div className="text-center">Name</div>,
     cell: ({ row }) => (
-      <span className="font-semibold text-gray-900">
+      <div className="text-center font-semibold text-gray-900">
         {row.original.fullName || "—"}
-      </span>
+      </div>
     ),
   },
 
   {
     accessorKey: "email",
-    header: "Email",
+    header: () => <div className="text-center">Email</div>,
     cell: ({ row }) => (
-      <span className="text-sm text-muted-foreground">
+      <div className="text-center text-sm text-muted-foreground">
         {row.original.email || "—"}
-      </span>
+      </div>
     ),
   },
 
   {
     accessorKey: "specialization",
-    header: "Specialization",
-    cell: ({ row }) =>
-      row.original.specialization ? (
-        <Badge variant="outline" className="px-2 py-1 rounded-md">
-          {row.original.specialization}
-        </Badge>
-      ) : (
-        <span className="text-muted-foreground">—</span>
-      ),
-  },
-
-  {
-    accessorKey: "experienceYears",
-    header: "Experience",
+    header: () => <div className="text-center">Specialization</div>,
     cell: ({ row }) => (
-      <span>
-        {row.original.experience
-          ? `${row.original.experience} yrs`
-          : "0 yrs"}
-      </span>
+      <div className="text-center">{row.original.specialization}</div>
     ),
   },
 
   {
-    id: "actions",
-    header: "",
+    accessorKey: "experience",
+    header: () => <div className="text-center">Experience</div>,
     cell: ({ row }) => (
-      <div className="flex items-center gap-2">
+      <div className="text-center">
+        {row.original.experience ? `${row.original.experience} yrs` : "0 yrs"}
+      </div>
+    ),
+  },
+  
+  {
+  accessorKey: "assignedPatients",
+  header: "Assigned Patients",
+  cell: ({ row }) => {
+    const patients = row.original.assignedPatients;
+
+    if (!patients || patients.length === 0) {
+      return <span className="text-sm text-muted-foreground">No Patients</span>;
+    }
+
+    return (
+      <span className="text-sm text-muted-foreground">
+        {patients.map((p: any) => p.fullName).join(", ")}
+      </span>
+    );
+  },
+},
+
+  {
+    id: "actions",
+    header: () => <div className="text-center">Actions</div>,
+    cell: ({ row }) => (
+      <div className="flex justify-center items-center gap-2">
         <Button
-          size="sm"
+          size="icon"
           variant="secondary"
           onClick={() => console.log("edit", row.original.userId)}
+          className="h-8 w-8 rounded-full p-0 bg-yellow-400 cursor-pointer hover:bg-yellow-500"
         >
-          Edit
+          <Edit className="h-4 w-4" />
         </Button>
 
         <Button
-          size="sm"
+          size="icon"
           variant="destructive"
           onClick={() => console.log("delete", row.original.userId)}
+          className="h-8 w-8 rounded-full p-0 bg-rose-500 cursor-pointer hover:bg-rose-600"
         >
-          Delete
+          <Trash2 className="h-4 w-4" />
         </Button>
       </div>
     ),
