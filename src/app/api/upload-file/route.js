@@ -8,6 +8,8 @@ export async function POST(request) {
     const jsonResponse = await handleUpload({
       body,
       request,
+      token: process.env.BLOB_READ_WRITE_TOKEN, // ✅ REQUIRED!!
+
       onBeforeGenerateToken: async () => {
         return {
           allowedContentTypes: ["image/jpeg", "image/png", "image/gif"],
@@ -18,6 +20,7 @@ export async function POST(request) {
           }),
         };
       },
+
       onUploadCompleted: async ({ blob, tokenPayload }) => {
         console.log("📂 Upload completed:", blob);
 

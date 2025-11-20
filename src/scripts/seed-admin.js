@@ -24,6 +24,7 @@ async function run() {
       email,
       password: hashedPassword,
       role: "admin",
+      status: "approved",
     });
 
     console.log("🎉 Super Admin created successfully!");

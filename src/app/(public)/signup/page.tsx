@@ -31,6 +31,7 @@ import { APP_ROUTES } from "@/constants/app-routes";
 import { useRouter } from "next/navigation";
 import Loader from "@/components/common/Loader";
 import { upload } from "@vercel/blob/client"; 
+import { useEffect } from "react";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -55,57 +56,68 @@ export default function SignUpPage() {
     },
   });
 
+
   const watchedFile = form.watch("profileImageUrl")?.[0] ?? null;
 
   const removeSelectedFile = () => {
     form.resetField("profileImageUrl");
   };
 
-  const onSubmit = async (data: SignUpFormData) => {
-    try {
-      if (!watchedFile) {
-        toast.error("Please upload a profile picture");
-        return;
-      }
+const onSubmit = async (data: SignUpFormData) => {
+  try {
+    if (!watchedFile) {
+      toast.error("Please upload a profile picture");
+      return;
+    }
 
-      
-      const blob = await upload(`users/${data.email}/${watchedFile.name}`, watchedFile, {
+    // 1. Upload image to Vercel Blob
+    const blob = await upload(
+      `users/${data.email}/${watchedFile.name}`,
+      watchedFile,
+      {
         access: "public",
         handleUploadUrl: "/api/upload-file",
-      });
-      const uploadedUrl = blob.url;
-
-      
-      const formData = new FormData();
-      formData.append("fullName", data.fullName);
-      formData.append("email", data.email);
-      formData.append("role", data.role);
-      formData.append("password", data.password);
-      formData.append("profileImageUrl", uploadedUrl);
-
-      
-      const result = await registerUser(formData);
-
-      if (!result?.success && !result?.data) {
-        throw new Error(result?.message || "Signup failed");
       }
+    );
 
-      setLoggedInUser(result.data.user);
-      saveAccessToken(result.accessToken);
-      if (result?.success && result.data) {
-        toast.success("Signup successful 🎉 Redirecting...");
-      }
+    const uploadedUrl = blob.url;
 
-      form.reset();
-      removeSelectedFile();
+    // 2. Prepare FormData payload
+    const formData = new FormData();
+    formData.append("fullName", data.fullName);
+    formData.append("email", data.email);
+    formData.append("role", data.role);
+    formData.append("password", data.password);
+    formData.append("profileImageUrl", uploadedUrl);
 
-      setTimeout(() => {
-        router.replace(APP_ROUTES.DASHBOARD);
-      }, 1000);
-    } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : "Something went wrong. Please try again.");
+    // 3. API call
+    const result = await registerUserAPI(formData);
+
+    // 4. Handle API failure
+    if (!result || !result.success) {
+     toast.error( "Signup failed. Please try again.");
     }
-  };
+
+    // 5. Save user + token
+if(result.success){
+  toast.success(result?.message);
+
+  form.reset();
+  removeSelectedFile();
+}
+
+    // 6. Reset form
+
+    // router.push("/dashboard");
+
+  } catch (error) {
+    toast.error(
+      error instanceof Error
+        ? error.message
+        : "Something went wrong. Please try again."
+    );
+  }
+};
 
 
   return (
@@ -136,7 +148,7 @@ export default function SignUpPage() {
       <div className="grid grid-cols-2 gap-2 mt-2">
 
         {/* Only public roles */}
-        {["patient", "caretaker"].map((role) => (
+        {["doctor","patient"].map((role) => (
           <button
             key={role}
             type="button"
@@ -147,7 +159,7 @@ export default function SignUpPage() {
                 : "border-gray-200 bg-white hover:border-gray-300"
             }`}
           >
-            {role === "caretaker" && <span className="text-xl">👨‍👩‍👧‍👦</span>}
+            {role === "doctor" && <span className="text-xl">👨‍👩‍👧‍👦</span>}
             {role === "patient" && <span className="text-xl">🙍‍♂️</span>}
             <span className="capitalize">{role}</span>
           </button>
@@ -297,3 +309,5 @@ export default function SignUpPage() {
     </div>
   );
 }
+
+

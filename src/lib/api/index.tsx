@@ -4,22 +4,44 @@ import { RegisterUserPayload } from '@/types/user';
 import { PatientPayload } from '@/types/patientFormtypes';
 import { CreateDoctorPayload } from '@/types/doctor';
 import { Doctor } from '../types';
+import { success } from 'zod';
+import { toast } from 'sonner';
 
 // ============================================
 // AUTH APIs
 // ============================================
 
 export async function registerUserAPI(formData: FormData) {
-  const res = await api.post("/auth/signup", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
+  try {
+    const res = await api.post("/auth/signup", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
 
-  if (!res || (res as any)?.success === false) {
-    throw new Error((res as any)?.error || "Faile d to register user");
+    const data = res.data;
+
+    // Backend always returns success + data object
+    if (!data?.success) {
+      toast.error("Failed to register user");
+    }
+
+    return {
+      success: true,
+      message: data?.message,
+      user: data?.user,
+      accessToken: data?.user?.accessToken,
+    };
+
+  } catch (error: any) {
+    console.log("Signup error:", error);
+    throw new Error(
+      error.response?.data?.error || error.message || "Signup request failed"
+    );
   }
-
-  return res;
 }
+
+
   
 export async function loginUserAPI({ email, password, role }: { email: string; password: string; role: string }) {
   try {

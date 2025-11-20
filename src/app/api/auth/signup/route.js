@@ -1,9 +1,8 @@
 import dbConnect from "@/lib/mongoose";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
-import { passwordRegex } from "@/constants";
 import { NextResponse } from "next/server";
-import { loginUser } from "@/lib/auth/loginUser";
+import { passwordRegex } from "@/constants";
 
 export async function POST(req) {
   try {
@@ -13,117 +12,69 @@ export async function POST(req) {
     const email = formData.get("email");
     const password = formData.get("password");
     const profileImageUrl = formData.get("profileImageUrl");
-    const role = formData.get("role");
-
-    // -----------------------------
-    // 1️⃣ Validate Required Fields
-    // -----------------------------
-    if (!fullName || !email || !password || !profileImageUrl || !role) {
+    const role = formData.get("role")
+    if (!fullName || !email || !password || !profileImageUrl) {
       return NextResponse.json(
-        { success: false, error: "All fields are required", data: null },
+        { success: false, error: "All fields are required" },
         { status: 400 }
       );
     }
 
-    // -----------------------------
-    // 2️⃣ Allow Only Public Roles
-    // -----------------------------
-    const publicRoles = ["patient", "caretaker"];
+    // if (!passwordRegex.test(password.toString())) {
+    //   return NextResponse.json(
+    //     {
+    //       success: false,
+    //       error:
+    //         "Password must be at least 8 characters and include uppercase, lowercase, number, and special character.",
+    //     },
+    //     { status: 400 }
+    //   );
+    // }
 
-    if (!publicRoles.includes(role.toLowerCase())) {
-      return NextResponse.json(
-        { success: false, error: "This role cannot be created publicly", data: null },
-        { status: 403 }
-      );
-    }
-
-    // -----------------------------
-    // 3️⃣ Validate Password Strength
-    // -----------------------------
-    if (!passwordRegex.test(password)) {
-      return NextResponse.json(
-        {
-          success: false,
-          data: null,
-          error:
-            "Password must be at least 8 characters and include uppercase, lowercase, number, and special character.",
-        },
-        { status: 400 }
-      );
-    }
-
-    // -----------------------------
-    // 4️⃣ Connect DB
-    // -----------------------------
     await dbConnect();
 
-    // -----------------------------
-    // 5️⃣ Check Duplicate Email
-    // -----------------------------
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
+    const exists = await User.findOne({ email });
+    if (exists) {
       return NextResponse.json(
-        { success: false, error: "Email already registered", data: null },
+        { success: false, error: "Email already registered" },
         { status: 409 }
       );
     }
 
-    // -----------------------------
-    // 6️⃣ Hash Password
-    // -----------------------------
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password.toString(), 10);
 
-    // -----------------------------
-    // 7️⃣ Create User
-    // -----------------------------
     const user = await User.create({
       fullName,
       email,
       password: hashedPassword,
       profileImageUrl,
-      role: role.toLowerCase(),
+      role,
+      status: "pending",
     });
 
-    // -----------------------------
-    // 8️⃣ Auto Login After Signup
-    // -----------------------------
-    let accessToken = null;
+    // ❌ NO TOKEN DURING SIGNUP — WAIT FOR ADMIN APPROVAL
 
-    // try {
-    //   const loginResult = await loginUser(email, password);
-    //   accessToken = loginResult?.accessToken;
-    // } catch (err) {
-    //   console.error("⚠️ Auto-login failed:", err.message);
-    // }
-
-    // -----------------------------
-    // 9️⃣ Final Response
-    // -----------------------------
     return NextResponse.json(
       {
         success: true,
         data: {
-          message: "Account created successfully",
-          accessToken,
+          message: "Signup successful. Waiting for admin approval.",
           user: {
             id: user._id,
             fullName: user.fullName,
             email: user.email,
+            role: role,
+            status: user.status,
             profileImageUrl: user.profileImageUrl,
-            role: user.role,
           },
         },
       },
-      { status: 201 }
+      { status: 200 }
     );
-  } catch (error) {
-    console.error("Signup Error:", error);
+
+  } catch (err) {
     return NextResponse.json(
-      {
-        success: false,
-        data: null,
-        error: error.message || "Internal server error",
-      },
+      { success: false, error: err.message || "Internal server error" },
       { status: 500 }
     );
   }

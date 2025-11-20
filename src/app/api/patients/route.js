@@ -1,18 +1,21 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongoose";
 import Patient from "@/models/Patient";
+import { verifyToken } from "@/lib/jwt";
+import { getToken } from "@/lib/jwt";
 
 export async function POST(req) {
   try {
     await dbConnect();
 
+    const token = await getToken(req);   // ⬅ Get authenticated user
+    const userId = token?.id;
+
     const body = await req.json();
     console.log("📥 Received patient body:", body);
 
-    // ✅ Extract and normalize data
     const medicalRecordsId = body.medicalRecordsId || body.fullName || "Unknown";
 
-    // Build demographics from flat fields
     const demographics = {
       age: body.age ? Number(body.age) : null,
       sex: body.sex || "",
@@ -21,20 +24,6 @@ export async function POST(req) {
       height: body.height ? Number(body.height) : null,
     };
 
-    // Handle care team arrays
-    const careTeam_doctors = Array.isArray(body.careTeam_doctors)
-      ? body.careTeam_doctors
-      : body.careTeam_doctors
-      ? [body.careTeam_doctors]
-      : [];
-
-    const careTeam_caretakers = Array.isArray(body.careTeam_caretakers)
-      ? body.careTeam_caretakers
-      : body.careTeam_caretakers
-      ? [body.careTeam_caretakers]
-      : [];
-
-    // Create patient document using fields sent by client
     const newPatientData = {
       fullName: body.fullName || medicalRecordsId,
       medicalRecordsId,
@@ -42,79 +31,100 @@ export async function POST(req) {
       contact: body.contact || "",
       assignedDoctor: body.assignedDoctor || null,
       assignedCaretaker: body.assignedCaretaker || null,
-      medicalHistory: Array.isArray(body.medicalHistory) ? body.medicalHistory : (body.medicalHistory ? [body.medicalHistory] : []),
-      allergies: Array.isArray(body.allergies) ? body.allergies : (body.allergies ? body.allergies.split(",").map(s=>s.trim()).filter(Boolean) : []),
+      medicalHistory: body.medicalHistory ?? [],
+      allergies: Array.isArray(body.allergies)
+        ? body.allergies
+        : body.allergies
+        ? body.allergies.split(",").map(a => a.trim())
+        : [],
       emergencyContacts: body.emergencyContacts || [],
       consent_dataSharing: body.consent_dataSharing ?? false,
-      careTeam_doctors,
-      careTeam_caretakers,
+      careTeam_doctors: body.careTeam_doctors ?? [],
+      careTeam_caretakers: body.careTeam_caretakers ?? [],
+
+      // ⬅ ALWAYS attach userId from token
+      userId: userId,
     };
 
-    // include userId if the client provided one (some flows create patients tied to a user)
-    if (body.userId) newPatientData.userId = body.userId;
-
-    const newPatient = new Patient(newPatientData);
-
-    const savedPatient = await newPatient.save();
-    console.log("✅ Patient saved:", savedPatient);
+    const savedPatient = await Patient.create(newPatientData);
 
     return NextResponse.json(
-      {
-        success: true,
-        message: "Patient created successfully",
-        data: savedPatient,
-      },
+      { success: true, message: "Patient created", data: savedPatient },
       { status: 201 }
     );
   } catch (error) {
-    console.error("❌ Error creating patient:", error);
-    // If Mongoose validation error, include field errors
-    const resp = {
-      success: false,
-      message: error.message || "Failed to create patient",
-      error: error.message,
-    };
-    if (error.name === 'ValidationError' && error.errors) {
-      resp.details = Object.keys(error.errors).reduce((acc, key) => {
-        acc[key] = error.errors[key].message;
-        return acc;
-      }, {});
-    }
-
-    return NextResponse.json(resp, { status: 500 });
-  }
-}
-
-
-
-
-// ================================
-// 📌 GET – Fetch all patients
-// ================================
-export async function GET() {
-  try {
-    await dbConnect();
-
-    const patients = await Patient.find().sort({ createdAt: -1 });
-
+    console.error(error);
     return NextResponse.json(
-      {
-        success: true,
-        count: patients.length,
-        data: patients,
-      },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error("❌ Error fetching patients:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Failed to fetch patients",
-        error: error.message,
-      },
+      { success: false, error: error.message },
       { status: 500 }
     );
   }
 }
+
+// ================================
+// 📌 GET – Fetch all patients
+// ================================
+export async function GET(req) {
+  try {
+    await dbConnect();
+    
+
+    const token = req.headers.get("authorization")?.split(" ")[1];
+
+    if (!token) {
+      return NextResponse.json(
+        { success: false, message: "No token provided" },
+        { status: 401 }
+      );
+    }
+
+    // Decode JWT
+    const decoded = verifyToken(token);
+    console.log("Decoded Token:", decoded);
+
+    const userId = decoded?.id;
+    const role = decoded?.role;
+
+    console.log("User ID:", userId);
+    console.log("Role:", role);
+
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: "Invalid token" },
+        { status: 400 }
+      );
+    }
+
+    // Only a patient can fetch this
+    if (role !== "patient") {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized: Not a patient" },
+        { status: 403 }
+      );
+    }
+
+    // Fetch full patient document
+    const patient = await Patient.findOne({ userId });
+
+    if (!patient) {
+      return NextResponse.json(
+        { success: false, message: "Patient not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      { success: true, patient },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("GET PATIENT ERROR:", error);
+
+    return NextResponse.json(
+      { success: false, error: error.message },
+      { status: 500 }
+    );
+  }
+}
+
 

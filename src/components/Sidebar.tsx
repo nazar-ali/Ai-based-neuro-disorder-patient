@@ -42,19 +42,19 @@ type NavItem = {
 
 const navItemsByRole: Record<UserRole, NavItem[]> = {
   admin: [
-    { title: "Dashboard", icon: HomeIcon, url: "/dashboard" },
+    { title: "Dashboard", icon: HomeIcon, url: "/admin/dashboard" },
     { title: "Appointments", icon: Users, url: "/appointments" },
     { title: "Reports", icon: BarChart3, url: "/reports" },
     { title: "Settings", icon: Settings, url: "/settings" },
   ],
   doctor: [
-    { title: "Dashboard", icon: HomeIcon, url: "/dashboard" },
+    { title: "Dashboard", icon: HomeIcon, url: "/doctor/dashboard" },
     { title: "My Patients", icon: Users, url: "/doctor/patients" },
     { title: "Appointments", icon: Bell, url: "/doctor/appointments" },
     { title: "Reports", icon: BarChart3, url: "/doctor/reports" },
   ],
   patient: [
-    { title: "Dashboard", icon: HomeIcon, url: "/dashboard" },
+    { title: "Dashboard", icon: HomeIcon, url: "/patient/dashboard" },
     { title: "Appointments", icon: Bell, url: "/patient/appointments" },
     { title: "Prescriptions", icon: HistoryIcon, url: "/patient/prescriptions" },
     { title: "History", icon: Users, url: "/patient/history" },

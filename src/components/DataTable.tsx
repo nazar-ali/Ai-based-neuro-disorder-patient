@@ -69,7 +69,7 @@ export function DataTable<TData, TValue>({
         )}
 
         {/* Scrollable area */}
-        <div className="overflow-auto max-h-[200px]">
+        {/* <div className="overflow-auto max-h-[200px]"> */}
           <Table className={loading ? "opacity-0" : "opacity-100 transition-opacity duration-300"}>
            {table?.getHeaderGroups && (
   <TableHeader className="sticky top-0 bg-gray-100/90 backdrop-blur z-10">
@@ -130,7 +130,7 @@ export function DataTable<TData, TValue>({
             
           </Table>
         </div>
-      </div>
+      {/* </div> */}
 
       {/* Pagination */}
       <div className="flex items-center justify-between mt-2 px-2">

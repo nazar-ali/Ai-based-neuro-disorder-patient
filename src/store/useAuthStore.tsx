@@ -1,46 +1,38 @@
-// src/store/useAuthStore.ts
 import { create } from "zustand";
 
-interface AuthState {
-  userId: string | null;
-  role: string | null;
-  token: string | null;
+interface User {
+  id: string;
+  fullName: string;
+  email: string;
+  role: string;
+  profileImageUrl?: string;
+  success?: boolean;
+}
 
-  setAuth: (data: { userId: string; role: string; token: string }) => void;
+interface AuthState {
+  user: User | null;
+  success?: boolean;
+  accessToken: string | null;
+  setUser: (user: User, token: string) => void;
   logout: () => void;
-  hydrate: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  userId: null,
-  role: null,
-  token: null,
+  user: null,
+  accessToken: null,
+  success: false,
 
-  hydrate: () => {
-    if (typeof window !== "undefined") {
-      const raw = localStorage.getItem("auth");
-      if (raw) {
-        try {
-          const saved = JSON.parse(raw);
-          set(saved);
-        } catch {
-          localStorage.removeItem("auth");
-        }
-      }
-    }
-  },
+  setUser: (user, token) =>
+    set({
+      user,
+      success: true,
+      accessToken: token,
+    }),
 
-  setAuth: (data) => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("auth", JSON.stringify(data));
-    }
-    set(data);
-  },
-
-  logout: () => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("auth");
-    }
-    set({ userId: null, role: null, token: null });
-  },
+  logout: () =>
+    set({
+      user: null,
+      success: false,
+      accessToken: null,
+    }),
 }));

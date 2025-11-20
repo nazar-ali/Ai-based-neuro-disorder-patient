@@ -19,13 +19,12 @@ interface PatientStore {
   setError: (e: string | null) => void;
 }
 
-/** ----------------------------------------
- * Normalizer for backend response
+/* ----------------------------------------
+ * Normalize Patient Data
  * ---------------------------------------- */
 const normalizePatient = (p: any): Patient => {
   const copy: any = { ...p };
 
-  // Normalize assigned doctor
   if (copy.assignedDoctor && typeof copy.assignedDoctor === "object") {
     copy.assignedDoctor = {
       _id: copy.assignedDoctor._id,
@@ -36,7 +35,6 @@ const normalizePatient = (p: any): Patient => {
     };
   }
 
-  // Normalize assigned caretaker
   if (copy.assignedCaretaker && typeof copy.assignedCaretaker === "object") {
     copy.assignedCaretaker = {
       _id: copy.assignedCaretaker._id,
@@ -50,7 +48,7 @@ const normalizePatient = (p: any): Patient => {
   return copy as Patient;
 };
 
-/** ----------------------------------------
+/* ----------------------------------------
  * Zustand Store
  * ---------------------------------------- */
 export const usePatientStore = create<PatientStore>()(
@@ -64,53 +62,49 @@ export const usePatientStore = create<PatientStore>()(
       setLoading: (v) => set({ patientLoading: v }),
       setError: (e) => set({ error: e }),
 
-      /** ----------------------------------------
-       * FETCH ALL PATIENTS
+      /* ----------------------------------------
+       * GET ALL PATIENTS
        * ---------------------------------------- */
       fetchPatients: async () => {
-        set({ patientLoading: true, error: null });
-        try {
-          const res = await api.get("/patients");
+  try {
+    set({ patientLoading: true, error: null });
 
-          const data =
-            res?.data?.data ??
-            res?.data ??
-            res;
+    const res = await api.get("/patients");
+    const data = res;  // FIXED
 
-          const list = Array.isArray(data)
-            ? data
-            : Array.isArray(data?.data)
-            ? data.data
-            : [];
+    console.log("Fetched patients:", data);
 
-          const normalized = list.map((p: any) => normalizePatient(p));
+    if (!data.success) {
+      throw new Error(data.message || "Failed to fetch patients");
+    }
 
-          set({ patients: normalized, patientLoading: false });
-          return normalized;
-        } catch (err: any) {
-          const message =
-            err?.response?.data?.error ||
-            err?.response?.data?.message ||
-            err?.message ||
-            "Failed to fetch patients";
+    // Your backend returns:  { success: true, patients: [...] }
+      const normalized = data.patient
+      ? [normalizePatient(data.patient)] // convert object → array
+      : [];
 
-          console.error("FETCH PATIENTS ERROR:", message);
-          set({ error: message, patientLoading: false });
-          return null;
-        }
-      },
+    set({ patients: normalized });
 
-      /** ----------------------------------------
+    return normalized;
+  } catch (err: any) {
+    set({ error: err.message });
+    return null;
+  } finally {
+    set({ patientLoading: false });
+  }
+},
+
+
+      /* ----------------------------------------
        * ADD PATIENT
        * ---------------------------------------- */
       addPatient: async (payload) => {
-        set({ patientLoading: true, error: null });
-
         try {
-          const res = await api.post("/patients", payload);
-          const created = normalizePatient(res?.data?.data ?? res?.data ?? res);
+          set({ patientLoading: true, error: null });
 
-          // Add optimistically without refetch
+          const res = await api.post("/patients", payload);
+          const created = normalizePatient(res.data.data);
+
           set({
             patients: [...get().patients, created],
             patientLoading: false,
@@ -118,83 +112,96 @@ export const usePatientStore = create<PatientStore>()(
 
           return created;
         } catch (err: any) {
-          const message =
-            err?.response?.data?.error ||
-            err?.response?.data?.message ||
-            err?.message ||
-            "Failed to add patient";
-
-          console.error("ADD PATIENT ERROR:", message);
-          set({ error: message, patientLoading: false });
+          set({
+            error:
+              err?.response?.data?.error ||
+              err?.response?.data?.message ||
+              err.message,
+          });
           return null;
+        } finally {
+          set({ patientLoading: false });
         }
       },
 
-      /** ----------------------------------------
+      /* ----------------------------------------
        * UPDATE PATIENT
        * ---------------------------------------- */
       updatePatient: async (patientId, payload) => {
-        set({ patientLoading: true, error: null });
-
         try {
-          const res = await api.put(`/patients/${patientId}`, payload);
-          const updated = normalizePatient(
-            res?.data?.data ?? res?.data ?? res
-          );
+          set({ patientLoading: true, error: null });
 
-          // Update optimistically in local store
+          const res = await api.put(`/patients/${patientId}`, payload);
+          const updated = normalizePatient(res.data.data);
+
           set({
             patients: get().patients.map((p) =>
               p._id === patientId ? updated : p
             ),
-            patientLoading: false,
           });
 
           return updated;
         } catch (err: any) {
-          const message =
-            err?.response?.data?.error ||
-            err?.response?.data?.message ||
-            err?.message ||
-            "Failed to update patient";
-
-          console.error("UPDATE PATIENT ERROR:", message);
-          set({ error: message, patientLoading: false });
+          set({
+            error:
+              err?.response?.data?.error ||
+              err?.response?.data?.message ||
+              err.message,
+          });
           return null;
+        } finally {
+          set({ patientLoading: false });
         }
       },
 
-      /** ----------------------------------------
+      /* ----------------------------------------
        * DELETE PATIENT
        * ---------------------------------------- */
       deletePatient: async (patientId) => {
-        set({ patientLoading: true, error: null });
-
         try {
+          set({ patientLoading: true, error: null });
+
           await api.delete(`/patients/${patientId}`);
 
           set({
             patients: get().patients.filter((p) => p._id !== patientId),
-            patientLoading: false,
           });
 
           return true;
         } catch (err: any) {
-          const message =
-            err?.response?.data?.error ||
-            err?.response?.data?.message ||
-            err?.message ||
-            "Failed to delete patient";
-
-          console.error("DELETE PATIENT ERROR:", message);
-          set({ error: message, patientLoading: false });
+          set({
+            error:
+              err?.response?.data?.error ||
+              err?.response?.data?.message ||
+              err.message,
+          });
           return false;
+        } finally {
+          set({ patientLoading: false });
         }
       },
     }),
+
+    /* ----------------------------------------
+     * Persist Config
+     * ---------------------------------------- */
     {
       name: "patient-store",
-      version: 2, // updated version for safer migration
+      version: 4, // new version
+
+      migrate: (persistedState: any, version) => {
+        console.log("Migrating patient store → from version", version);
+
+        if (version < 4) {
+          return {
+            patients: [],
+            patientLoading: false,
+            error: null,
+          };
+        }
+
+        return persistedState;
+      },
     }
   )
 );

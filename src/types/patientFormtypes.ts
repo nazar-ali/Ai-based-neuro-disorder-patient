@@ -1,4 +1,7 @@
-// src/types/formTypes.ts
+export interface AssignedUser {
+  _id: string;
+  fullName: string;
+}
 
 export interface EmergencyContact {
   name: string;
@@ -8,74 +11,13 @@ export interface EmergencyContact {
 }
 
 
-export interface Demographics {
-  age: number;
-  sex: string;
-  height: number;
-  weight: number;
-}
-
-
-export interface PatientForm {
-  medicalRecordsId: string;
-  consent_dataSharing: boolean;
-  emergencyContacts: EmergencyContact[];
-  demographics: Demographics;
-  careTeam_doctors: string[];
-  careTeam_caretakers: string[];
-  allergies: string[];
-  medicalHistory: string[];
-  assignedDoctor?: string;
-  assignedCaretaker?: string | null;
-  fullName: string;
-}
-
-
-export interface PatientInfoProps {
-  form: PatientForm;
-  setForm: React.Dispatch<React.SetStateAction<PatientForm>>;
-}
-
-
-
-export interface PatientPayload {
-  fullName: string;
-  medicalRecordsId?: string;
-
-  // demographics
-  demographics?: {
-    age: number;
-    sex: string;
-    height: number;
-    weight: number;
-  };
-
-  medicalHistory?: string[];
-  allergies?: string[];
-  
-  assignedDoctor?: string;
-  assignedCaretaker?: string | null;
-
-  careTeam_doctors?: string[];
-  careTeam_caretakers?: string[];
-
-  emergencyContacts?: {
-    name: string;
-    relation: string;
-    contact: string;
-    isPrimary?: boolean;
-  }[];
-
-  consent_dataSharing?: boolean;
-
-  userId?: string;
-}
-
 export interface Patient {
   _id: string;
   fullName: string;
 
-  medicalRecordsId: string;
+  medicalRecordsId?: string;
+
+  userId?: string;
 
   demographics: {
     age: number;
@@ -87,53 +29,74 @@ export interface Patient {
   medicalHistory: string[];
   allergies: string[];
 
-  assignedDoctor: string | null;
-  assignedCaretaker: string | null;
-
-  careTeam_doctors: string[];
-  careTeam_caretakers: string[];
+  assignedDoctor: string | AssignedUser | null;
+  assignedCaretaker: string | AssignedUser | null;
 
   emergencyContacts: EmergencyContact[];
 
   consent_dataSharing: boolean;
 
+  careTeam_doctors: string[];
+  careTeam_caretakers: string[];
+
+  reports: string[];
+
   createdAt: string;
   updatedAt: string;
 }
 
-// export interface PatientRow {
-//   _id: string;
-//   fullName?: string;
-//   mriRecordId?: string;
-//   assignedDoctor?: {
-//     _id?: string;
-//     fullName?: string;
-//     email?: string;
-//   } | string | null;
-//   assignedCaretaker?: {
-//     _id?: string;
-//     fullName?: string;
-//     email?: string;
-//   } | string | null;
-// }
+export interface PatientForm {
+  _id?: string;
+  userId?: string;
 
+  fullName: string;
+  medicalRecordsId?: string;
+
+  demographics: {
+    age: number;
+    sex: string;
+    height: number;
+    weight: number;
+  };
+
+  medicalHistory: string[];
+  allergies: string[];
+
+  assignedDoctor?: AssignedUser | string | null;
+  assignedCaretaker?: AssignedUser | string | null;
+
+  emergencyContacts: EmergencyContact[];
+
+  consent_dataSharing: boolean;
+
+  careTeam_doctors: string[];
+  careTeam_caretakers: string[];
+
+  reports?: string[];
+
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 export interface PatientRow {
   _id: string;
   fullName: string;
-  medicalRecordsId: string;
 
-  assignedDoctor?: string | { _id: string; fullName?: string } | null;
-  assignedCaretaker?: string | { _id: string; fullName?: string } | null;
+  // FIX — optional instead of required
+  medicalRecordsId?: string;  
 
-  allergies?: string[];
+  assignedDoctor: string | AssignedUser | null;  
+  assignedCaretaker: string | AssignedUser | null;
 
-  emergencyContacts?: Array<{
-    name: string;
-    relation: string;
-    contact: string;
-    isPrimary?: boolean;
-  }>;
+  allergies: string[];
+  emergencyContacts: EmergencyContact[];
+}
+
+export interface PatientPayload {
+  fullName: string;
+  medicalRecordsId?: string;
+
+  userId: string;
 
   demographics?: {
     age?: number;
@@ -141,5 +104,19 @@ export interface PatientRow {
     height?: number;
     weight?: number;
   };
-}
 
+  medicalHistory?: string[];
+  allergies?: string[];
+
+  assignedDoctor?: string | null;
+  assignedCaretaker?: string | null;
+
+  emergencyContacts?: EmergencyContact[];
+
+  consent_dataSharing?: boolean;
+
+  careTeam_doctors?: string[];
+  careTeam_caretakers?: string[];
+
+  reports?: string[];
+}
